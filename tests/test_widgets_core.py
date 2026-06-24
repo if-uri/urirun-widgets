@@ -188,6 +188,15 @@ def test_render_chat_message_with_attachment():
     assert 'data-chat-copy-md="m1"' in r["html"] and "Copy MD" in r["html"]
 
 
+def test_chat_message_repeat_button_only_on_user_commands():
+    # Repeat re-runs a command, so it appears only on user messages that carry a prompt,
+    # never on system/result messages.
+    user = c.render_view(widget="chat-message", data=json.dumps({"message": {"role": "user", "content": "wyslij do lenovo", "id": "u1"}}))
+    system = c.render_view(widget="chat-message", data=json.dumps({"message": {"role": "system", "content": "done", "id": "s1"}}))
+    assert 'data-chat-repeat="u1"' in user["html"] and "Repeat" in user["html"]
+    assert "data-chat-repeat=" not in system["html"]
+
+
 def test_render_artifact_grid():
     items = [{"id": "a1", "path": "/s/FV.pdf", "kind": "invoice", "uri": "doc://host/x",
               "created_at": "2026-06-24", "meta": {"detectedDocument": {"type": "faktura", "amount": 1230}}}]

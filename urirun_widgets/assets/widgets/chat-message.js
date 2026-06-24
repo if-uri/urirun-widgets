@@ -30,11 +30,15 @@ export function renderChatMessage(message, selectedIds) {
   const checkbox = message.id ? `<input type="checkbox" name="chatMessageSelect" value="${esc(message.id)}" ${selected}>` : '';
   const deleteButton = message.id ? `<button type="button" class="danger" data-chat-delete="${esc(message.id)}">Delete</button>` : '';
   const copyMarkdownButton = message.id ? `<button type="button" data-chat-copy-md="${esc(message.id)}" title="Copy message as Markdown">Copy MD</button>` : '';
+  // Re-run the command: only on user messages that carry a prompt (the command text).
+  const repeatButton = (message.id && role === 'user' && (message.content || '').trim())
+    ? `<button type="button" data-chat-repeat="${esc(message.id)}" title="Powtorz komende">Repeat</button>` : '';
   return `<div class="message ${esc(role)}">
     <div class="message-head">
       <span class="message-title">${checkbox}<strong>${esc(role)}</strong></span>
       <span class="message-actions">
         <span class="subtle">${esc(message.created_at || '')}</span>
+        ${repeatButton}
         ${copyMarkdownButton}
         ${deleteButton}
       </span>
