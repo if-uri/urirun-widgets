@@ -4,12 +4,12 @@
 # widget:// connector — the chat-stream widgets (the HTML views chatStreamList renders in
 # chat-main when scanning) behind a URI. The browser source of truth is the standalone ES
 # modules under assets/; this connector lists the catalogue, serves a single widget's JS, serves
-# the whole catalogue as one importable bundle (+ CSS), and renders a view server-side via the
-# Python mirror for headless surfaces (email digest, SVG snapshot, tests).
+# the whole catalogue as one importable bundle (+ CSS), and renders service views or named
+# dashboard widgets server-side via the Python mirror for headless surfaces.
 #
 #   widget://host/registry/query/list                  → the widget catalogue
 #   widget://host/widget/query/get?name=table          → one widget: metadata + JS source
-#   widget://host/widget/query/render?view=table       → server-side HTML for a view + `data`
+#   widget://host/widget/query/render?view=table       → server-side HTML for a view/widget + `data`
 #   widget://host/bundle/query/js                       → all widgets as one ES module
 #   widget://host/bundle/query/css                      → the shared stylesheet
 
@@ -147,8 +147,9 @@ def bundle_js() -> dict[str, Any]:
             line = line.replace("export function ", "function ").replace("export const ", "const ")
             cleaned_lines.append(line)
         chunks.append(f"// ----- {rel} -----\n" + "\n".join(cleaned_lines))
-    bundle = ("// urirun-widgets bundle — generated from assets/; renderServiceView(view) is the\n"
-              "// entry point. Concatenated module, single scope.\n\n" + "\n\n".join(chunks))
+    bundle = ("// urirun-widgets bundle — generated from assets/; entry points are\n"
+              "// renderServiceView(view) and renderDashboardWidget(name, data).\n"
+              "// Concatenated module, single scope.\n\n" + "\n\n".join(chunks))
     return {"ok": True, "connector": CONNECTOR_ID, "kind": "bundle", "live": False,
             "format": "esm", "files": catalog.BUNDLE_ORDER, "js": bundle}
 

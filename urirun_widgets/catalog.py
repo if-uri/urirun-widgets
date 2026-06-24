@@ -166,6 +166,7 @@ BUNDLE_ORDER = [
     "widgets/dashboard.js",
     "render.js",
     "widgets/widget-card.js",
+    "dashboard-render.js",
 ]
 
 # view-key -> catalogue id (so a published `view` resolves to its widget).

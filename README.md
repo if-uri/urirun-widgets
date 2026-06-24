@@ -3,7 +3,7 @@
 **Chat-stream HTML widgets** — connector ekosystemu [ifURI / urirun](https://github.com/if-uri/urirun).
 Schemat URI: `widget://`
 
-Widoki HTML, które okno czatu (`chat-main`) renderuje w `chatStreamList` podczas skanowania — teraz jako wspólny, adresowany przez URI katalog, zamiast funkcji wklejonych w dashboard hosta. Źródłem prawdy dla przeglądarki są samodzielne moduły ES w `assets/widgets/` (każdy renderuje jeden rodzaj `view`, dokładnie tak jak robi to host). Connector listuje katalog, serwuje JS pojedynczego widgetu, serwuje cały katalog jako jeden import (`bundle`) oraz renderuje widok po stronie serwera (mirror w Pythonie) dla powierzchni bez DOM.
+Widoki HTML, które okno czatu (`chat-main`) renderuje w `chatStreamList` podczas skanowania — teraz jako wspólny, adresowany przez URI katalog, zamiast funkcji wklejonych w dashboard hosta. Źródłem prawdy dla przeglądarki są samodzielne moduły ES w `assets/widgets/`. Connector listuje katalog, serwuje JS pojedynczego widgetu, serwuje cały katalog jako jeden import (`bundle`) oraz renderuje widok po stronie serwera (mirror w Pythonie) dla powierzchni bez DOM.
 
 The HTML views chatStreamList renders in chat-main when scanning, collected into one URI-addressable catalogue.
 
@@ -23,11 +23,23 @@ The HTML views chatStreamList renders in chat-main when scanning, collected into
 
 Wspólne helpery: `assets/render-helpers.js` · Dyspozytor `renderServiceView`: `assets/render.js` · Style: `assets/widgets.css`.
 
+Widgety dashboardowe są renderowane jawnie po nazwie, a nie po polu `view`:
+
+| id | użycie | plik |
+|----|--------|------|
+| `attachment` | pojedynczy załącznik czatu | `assets/widgets/attachment.js` |
+| `chat-message` | wiadomość czatu z timeline URI i załącznikami | `assets/widgets/chat-message.js` |
+| `artifact-grid` | tabela/grid artefaktów z preview, metadata i akcjami | `assets/widgets/artifact-grid.js` |
+| `widget-card` | karta usługi z live view | `assets/widgets/widget-card.js` |
+| `metrics`, `task-table`, `nodes`, `routes`, `contacts` | panele dashboardu | `assets/widgets/dashboard.js` |
+
+Dyspozytor dashboardowy: `assets/dashboard-render.js` (`renderDashboardWidget(name, data)`).
+
 ## Trasy
 
 - `widget://host/registry/query/list` — katalog widgetów (id, obsługiwane `view`, kształt `data`).
 - `widget://host/widget/query/get?name=table` — metadane + źródło ES jednego widgetu (`name` może być też kluczem `view`, np. `page` → `iframe`).
-- `widget://host/bundle/query/js` — helpery + wszystkie widgety + dyspozytor `renderServiceView` sklejone w **jeden moduł ES**, do załadowania całego katalogu w `chatStreamList` jednym importem.
+- `widget://host/bundle/query/js` — helpery + wszystkie widgety + dyspozytory `renderServiceView(view)` i `renderDashboardWidget(name, data)` sklejone w **jeden moduł ES**.
 - `widget://host/bundle/query/css` — wspólny arkusz stylów (samowystarczalny; zmienne motywu host może nadpisać).
 - `widget://host/widget/query/render?view=table` — render widoku do HTML **po stronie serwera** (mirror w Pythonie) dla e-maila/SVG/testów. Podaj `view` + `data` (JSON) albo pełny obiekt widoku w `data`.
 
@@ -39,14 +51,21 @@ import { renderServiceView } from 'widget://host/bundle/query/js';
 chatStreamList.innerHTML = views.map(renderServiceView).join('');
 ```
 
+```js
+// dashboard: artefakty albo wiadomości czatu po nazwie widgetu
+import { renderDashboardWidget } from 'widget://host/bundle/query/js';
+artifactFileGrid.innerHTML = renderDashboardWidget('artifact-grid', { items, selectedIds });
+```
+
 ```bash
 # render po stronie serwera (headless)
 urirun-widget render --view table --data '{"rows":[{"nip":"7781422455","gross":1230.0}]}'
+urirun-widget render --widget artifact-grid --data '{"items":[{"id":"a1","path":"/tmp/FV.pdf"}]}'
 ```
 
 ## Źródło prawdy a render serwerowy
 
-Moduły JS (`assets/`) to źródło prawdy dla przeglądarki. `render.py` to ich wierny odpowiednik w Pythonie używany przez `widget/query/render` — przy zmianie widgetu aktualizuj oba (test `test_python_and_js_widget_sets_match` pilnuje pokrycia zestawu `view`).
+Moduły JS (`assets/`) to źródło prawdy dla przeglądarki. `render.py` to ich wierny odpowiednik w Pythonie używany przez `widget/query/render` — przy zmianie widgetu aktualizuj oba. Testy pilnują osobno pokrycia `view` (`RENDERERS`) i dashboard widgets (`DASHBOARD_RENDERERS`).
 
 ## Wymagania
 

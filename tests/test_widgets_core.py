@@ -89,8 +89,10 @@ def test_bundle_js_is_concatenated_module_without_imports():
     # active cross-file imports stripped; dispatcher + a couple of renderers present as plain funcs
     assert "from './" not in js and "from '../" not in js
     assert "function renderServiceView(" in js
+    assert "function renderDashboardWidget(" in js
     assert "function renderTableServiceView(" in js
     assert "const WIDGETS" in js
+    assert "const DASHBOARD_WIDGETS" in js
 
 
 def test_bundle_css_self_contained():
@@ -206,6 +208,14 @@ def test_dashboard_widget_assets_are_valid_in_bundle():
     # the new modules must be included in the bundle and survive import-stripping
     js = c.bundle_js()["js"]
     for fn in ("renderAttachment", "renderChatMessage", "renderArtifactFileGrid",
-               "renderWidgetCard", "renderMetrics", "renderTasks", "renderContacts"):
+               "renderWidgetCard", "renderMetrics", "renderTasks", "renderContacts",
+               "renderDashboardWidget"):
         assert f"function {fn}(" in js, fn
     assert "from './" not in js and "from '../" not in js
+
+
+def test_dashboard_widget_dispatcher_asset_is_in_bundle():
+    js = c.bundle_js()["js"]
+    assert "'artifact-grid': (data) => renderArtifactFileGrid" in js
+    assert "'chat-message': (data) => renderChatMessage" in js
+    assert "'contacts': (data) => renderContacts" in js

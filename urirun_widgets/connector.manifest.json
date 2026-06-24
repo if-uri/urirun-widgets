@@ -4,8 +4,8 @@
   "uriSchemes": ["widget"],
   "status": "available",
   "category": "UI",
-  "summary": "The chat-stream HTML widgets behind a URI — the views chatStreamList renders in chat-main when scanning (scanner-stream, table, image, video, iframe, form, graph, generic). Lists the catalogue, serves one widget's JS, serves the whole catalogue as one importable ES module bundle (+ CSS), and renders a view server-side for headless surfaces.",
-  "description": "widget:// makes the chat window's scanning views a first-class, reusable catalogue instead of inline functions on the host dashboard. The browser source of truth is the standalone ES modules under assets/widgets/, each rendering one `view` kind exactly as chatStreamList does. widget://host/registry/query/list enumerates the catalogue (id, the `view` keys each handles, the data shape it expects). widget://host/widget/query/get?name=table returns one widget's metadata plus its ES module source. widget://host/bundle/query/js returns helpers + every widget + the renderServiceView dispatcher concatenated into a single module, so a surface (chat-main, a standalone page, an email preview) can load the whole set from one import; widget://host/bundle/query/css returns the shared stylesheet (self-contained, with theme variables a host can override). widget://host/widget/query/render?view=table renders a view to an HTML string with a Python mirror of the widgets — for email digests, SVG snapshots and tests, where there is no DOM. Pairs with the scanner/camera flow (scanner-stream + scanner-status visualise camera://host scans) and artifact:// (a form widget's fields can mirror an artifact schema).",
+  "summary": "The chat-stream and dashboard HTML widgets behind a URI. Serves one widget's JS, one importable ES module bundle (+ CSS), and server-side HTML for service views or named dashboard widgets.",
+  "description": "widget:// makes chat-stream views and dashboard widgets first-class reusable UI instead of inline functions on the host dashboard. The browser source of truth is the standalone ES modules under assets/widgets/. widget://host/registry/query/list enumerates the catalogue (id, the `view` keys each service widget handles, the data shape it expects). widget://host/widget/query/get?name=table returns one widget's metadata plus its ES module source. widget://host/bundle/query/js returns helpers + every widget + two dispatchers in one module: renderServiceView(view) for live/service views and renderDashboardWidget(name, data) for named dashboard widgets such as artifact-grid, chat-message and contacts. widget://host/bundle/query/css returns the shared stylesheet. widget://host/widget/query/render renders a service view (`view=table`) or dashboard widget (`widget=artifact-grid`) to an HTML string with the Python mirror. Pairs with the scanner/camera flow (scanner-stream + scanner-status visualise camera://host scans) and artifact:// (widgets can link to artifacts without owning artifact persistence).",
   "requires": {
     "python": ["urirun"],
     "optional": []
@@ -27,6 +27,7 @@
   "useCases": [
     "List every chat-stream widget and the view keys it handles.",
     "Load the whole widget catalogue into chatStreamList from one ES module import.",
+    "Render dashboard widgets such as artifact-grid, chat-message and contacts through one dispatcher.",
     "Fetch the shared widget stylesheet for a standalone page.",
     "Render a table/scanner-stream view to HTML server-side for an email digest or test.",
     "Get one widget's JS source to embed or customise."
