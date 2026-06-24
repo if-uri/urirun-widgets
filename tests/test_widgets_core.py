@@ -167,6 +167,16 @@ def test_render_attachment_widget():
     assert "attachment-pdf-frame" in r["html"] and "FAKTURA VAT" in r["html"]
 
 
+def test_render_attachment_missing_pdf_does_not_embed_stale_file_url():
+    att = {"path": "/scans/missing.pdf", "kind": "document-pdf", "previewUrl": "/api/file?path=/scans/missing.pdf",
+           "fileExists": False, "previewExists": False, "visualPreviewUrl": "", "meta": {}}
+    r = c.render_view(widget="attachment", data=json.dumps({"att": att}))
+    assert r["ok"] and r["widget"] == "attachment"
+    assert "attachment-pdf-frame" not in r["html"]
+    assert "/api/file?path=/scans/missing.pdf" not in r["html"]
+    assert "missing file" in r["html"]
+
+
 def test_render_chat_message_with_attachment():
     # a qr-code attachment is always shown; scanner frames are hidden unless an accepted
     # document exists (see message_attachments filtering).

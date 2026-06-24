@@ -329,6 +329,10 @@ def _is_scanner_frame(att: dict) -> bool:
 
 
 def _attachment_visual_url(att: dict) -> str:
+    if "visualPreviewUrl" in att:
+        return _text(att.get("visualPreviewUrl"))
+    if att.get("previewExists") is False:
+        return ""
     meta = att.get("meta") or {}
     disp = _text(meta.get("displayImage") or meta.get("displayPath") or meta.get("previewImage") or meta.get("image") or "")
     return _file_preview_url(disp) if disp else ""
@@ -339,9 +343,10 @@ def render_attachment(att: dict) -> str:
     meta = att.get("meta") or {}
     ocr = meta.get("ocr") or {}
     is_pdf = _is_pdf_attachment(att)
+    file_available = att.get("fileExists") is not False
     kind_class = " attachment-qr" if att.get("kind") == "qr-code" else (" attachment-pdf" if is_pdf else "")
     visual_url = _attachment_visual_url(att) if is_pdf else _text(att.get("previewUrl") or "")
-    pdf_url = _text(att.get("previewUrl") or "") if is_pdf else ""
+    pdf_url = _text(att.get("previewUrl") or att.get("filePreviewUrl") or "") if is_pdf and file_available else ""
     if is_pdf and pdf_url:
         preview = f'<iframe class="attachment-pdf-frame" src="{esc(pdf_url)}" title="{esc(_basename(att.get("path")))}" loading="lazy"></iframe>'
     elif visual_url:
@@ -350,8 +355,11 @@ def render_attachment(att: dict) -> str:
         preview = f'<div class="attachment-pdf-preview"><span>PDF</span><small>{esc(_basename(att.get("path")))}</small></div>'
     else:
         preview = '<div class="subtle">preview unavailable</div>'
-    open_l = f'<a href="{esc(att.get("previewUrl"))}" target="_blank" rel="noreferrer">open</a>' if att.get("previewUrl") else ""
-    download = f'<a href="{esc(att.get("previewUrl"))}" download>download</a>' if att.get("previewUrl") else ""
+    file_url = _text(att.get("previewUrl") or att.get("filePreviewUrl") or "") if file_available else ""
+    open_l = f'<a href="{esc(file_url)}" target="_blank" rel="noreferrer">open</a>' if file_url else ""
+    download = f'<a href="{esc(file_url)}" download>download</a>' if file_url else ""
+    missing = '<span class="pill down">missing file</span>' if att.get("fileExists") is False else ""
+    detail_att = att if file_available else {**att, "previewUrl": "", "filePreviewUrl": ""}
     if ocr.get("ok"):
         ocr_line = f'<div class="subtle">OCR {esc(ocr.get("backend") or "")}: {esc(_text(ocr.get("text"))[:160])}</div>'
     elif ocr.get("error"):
@@ -361,9 +369,9 @@ def render_attachment(att: dict) -> str:
     dims = f'· {meta.get("width")}x{meta.get("height")}' if meta.get("width") and meta.get("height") else ""
     return (f'<div class="attachment{kind_class}">{preview}'
             f'<div class="mono">{esc(_basename(att.get("path")))}</div>'
-            f'<div class="subtle">{esc(att.get("kind") or "file")} {dims}</div>'
+            f'<div class="subtle">{esc(att.get("kind") or "file")} {dims} {missing}</div>'
             f'<div class="artifact-actions">{open_l}{download}</div>{ocr_line}'
-            f'<details><summary>metadata</summary><pre>{_json_pre(att)}</pre></details></div>')
+            f'<details><summary>metadata</summary><pre>{_json_pre(detail_att)}</pre></details></div>')
 
 
 def message_attachments(message: dict) -> list[dict]:
