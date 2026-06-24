@@ -1,0 +1,175 @@
+/* Author: Tom Sapletta · https://tom.sapletta.com
+ * Part of the ifURI solution.
+ *
+ * Styles for the chat-stream widgets, extracted from the host dashboard so the views look the
+ * same inside chatStreamList in chat-main or standalone. The :root block supplies the few
+ * theme variables the rules reference, so this stylesheet is self-contained; a host that
+ * already defines them (the dashboard does) simply overrides these defaults. */
+
+:root {
+  --muted: #9aa4b2;
+  --line: #2a2f3a;
+  --line-soft: rgba(148, 163, 184, .22);
+  --surface: #14171f;
+  --surface-2: #181c25;
+  --surface-3: #1f2430;
+  --code-bg: #0e1117;
+  --good: #34d399;
+  --good-bg: rgba(52, 211, 153, .14);
+  --bad: #fb7185;
+  --bad-bg: rgba(251, 113, 133, .16);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, .16);
+}
+
+.subtle { color: var(--muted); }
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.status, .pill {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 12px;
+}
+.status.done, .pill.up { background: var(--good-bg); color: var(--good); }
+.status.blocked, .status.failed, .pill.down { background: var(--bad-bg); color: var(--bad); }
+.status.in_progress, .pill.running { background: var(--warn-bg); color: var(--warn); }
+
+.stream-list { display: grid; gap: 8px; }
+.stream-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(45, 212, 191, .28);
+  border-radius: 8px;
+  background: rgba(45, 212, 191, .08);
+}
+.stream-head, .stream-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stream-frames {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 6px;
+}
+.stream-frame {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.stream-frame img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--code-bg);
+}
+.service-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+}
+.service-table-wrap table {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  border-collapse: collapse;
+}
+.service-table-wrap th, .service-table-wrap td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+}
+.service-media {
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--code-bg);
+}
+.service-frame {
+  width: 100%;
+  height: min(68vh, 720px);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--code-bg);
+}
+.service-form-preview {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.service-form-preview .stack { display: grid; gap: 4px; }
+.service-graph {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.artifact-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.item {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.widget-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  align-content: start;
+}
+.widget-card > .stream-head,
+.widget-card > .subtle,
+.widget-card > .artifact-actions {
+  padding: 0 2px;
+}
+.widget-preview {
+  display: grid;
+  gap: 8px;
+  max-height: 720px;
+  overflow: auto;
+}
+pre {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--code-bg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
