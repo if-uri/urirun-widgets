@@ -219,3 +219,27 @@ def test_dashboard_widget_dispatcher_asset_is_in_bundle():
     assert "'artifact-grid': (data) => renderArtifactFileGrid" in js
     assert "'chat-message': (data) => renderChatMessage" in js
     assert "'contacts': (data) => renderContacts" in js
+
+
+def test_datashape_fields_referenced_consistently_in_js_and_python():
+    """Content-drift guard (deeper than view-keys): for each widget, the JS source and the
+    Python mirror must reference the SAME subset of the catalogue's declared dataShape
+    fields. A field rendered by one implementation but ignored by the other trips this."""
+    import inspect
+    import urirun_widgets.render as render
+    drift = {}
+    for wid, spec in catalog.CATALOG.items():
+        keys = [k for k in (spec.get("dataShape") or {}) if k != "*"]
+        if not keys:
+            continue
+        js = catalog.read_asset(spec["asset"])
+        views = [v for v in spec.get("views", []) if v != "*"]
+        func = render.RENDERERS.get(views[0]) if views else render.DASHBOARD_RENDERERS.get(wid)
+        if func is None:
+            continue
+        py = inspect.getsource(func)
+        js_has = {k for k in keys if k in js}
+        py_has = {k for k in keys if k in py}
+        if js_has != py_has:
+            drift[wid] = {"jsOnly": sorted(js_has - py_has), "pythonOnly": sorted(py_has - js_has)}
+    assert not drift, f"dataShape field drift between JS and Python: {drift}"
