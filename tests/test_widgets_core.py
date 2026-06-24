@@ -185,6 +185,7 @@ def test_render_chat_message_with_attachment():
     r = c.render_view(widget="chat-message", data=json.dumps({"message": msg, "selectedIds": ["m1"]}))
     assert r["ok"] and r["widget"] == "chat-message"
     assert "skan paragonu" in r["html"] and "checked" in r["html"] and "attachment" in r["html"]
+    assert 'data-chat-copy-md="m1"' in r["html"] and "Copy MD" in r["html"]
 
 
 def test_render_artifact_grid():

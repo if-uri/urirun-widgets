@@ -406,11 +406,13 @@ def render_chat_message(message: dict, selected_ids=()) -> str:
     checkbox = (f'<input type="checkbox" name="chatMessageSelect" value="{esc(mid)}" '
                 f'{"checked" if mid in sel else ""}>') if mid else ""
     delete_btn = f'<button type="button" class="danger" data-chat-delete="{esc(mid)}">Delete</button>' if mid else ""
+    copy_md_btn = (f'<button type="button" data-chat-copy-md="{esc(mid)}" '
+                   'title="Copy message as Markdown">Copy MD</button>') if mid else ""
     atts = (f'<div class="attachments">{"".join(render_attachment(a) for a in attachments)}</div>'
             if attachments else "")
     return (f'<div class="message {esc(role)}">'
             f'<div class="message-head"><span class="message-title">{checkbox}<strong>{esc(role)}</strong></span>'
-            f'<span class="message-actions"><span class="subtle">{esc(message.get("created_at") or "")}</span>{delete_btn}</span></div>'
+            f'<span class="message-actions"><span class="subtle">{esc(message.get("created_at") or "")}</span>{copy_md_btn}{delete_btn}</span></div>'
             f'<div>{esc(message.get("content") or "")}</div>'
             f'{f"<pre>{esc(lines)}</pre>" if lines else ""}{atts}'
             f'{f"<details><summary>URI / JSON</summary><pre>{_json_pre(detail)}</pre></details>" if detail else ""}</div>')
