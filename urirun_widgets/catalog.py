@@ -81,6 +81,71 @@ CATALOG: dict[str, dict[str, Any]] = {
         "summary": "Fallback for any view without a dedicated renderer; pretty-prints the data.",
         "dataShape": {"*": "any"},
     },
+    # --- dashboard widgets: rendered explicitly by the host (not selected by a `view` key), so
+    # they carry no concrete `views` and stay out of the renderServiceView dispatch map. -----
+    "attachment": {
+        "title": "Attachment",
+        "views": [],
+        "asset": "widgets/attachment.js",
+        "summary": "One chat attachment: scan/PDF/image/QR preview + OCR line + metadata.",
+        "dataShape": {"att": "{path, kind, previewUrl, meta:{ocr,displayImage,width,height}}"},
+    },
+    "chat-message": {
+        "title": "Chat message",
+        "views": [],
+        "asset": "widgets/chat-message.js",
+        "summary": "A chat message: role, content, URI timeline and its attachments.",
+        "dataShape": {"message": "{role, content, created_at, detail, attachments:[att]}"},
+    },
+    "artifact-grid": {
+        "title": "Artifact file grid",
+        "views": [],
+        "asset": "widgets/artifact-grid.js",
+        "summary": "Grid of stored artifacts (scans/PDFs/images) with preview, metadata and actions.",
+        "dataShape": {"items": "[{id, path, uri, kind, meta, created_at, fileExists, duplicateCount}]"},
+    },
+    "widget-card": {
+        "title": "Widget card",
+        "views": [],
+        "asset": "widgets/widget-card.js",
+        "summary": "Wraps a service + its live view into a dashboard card (uses renderServiceView).",
+        "dataShape": {"service": "{id, label, url, status}", "view": "service-view object"},
+    },
+    "metrics": {
+        "title": "Metrics",
+        "views": [],
+        "asset": "widgets/dashboard.js",
+        "summary": "Top-line counters (open/running/blocked tasks, nodes online, URI processes).",
+        "dataShape": {"summary": "{taskCounts, nodesOnline, nodeCount, routeCount}"},
+    },
+    "task-table": {
+        "title": "Task table",
+        "views": [],
+        "asset": "widgets/dashboard.js",
+        "summary": "Ticket rows (id, name, status, queue, priority, actions).",
+        "dataShape": {"tasks": "[{id, name, description, status, priority, execution}]"},
+    },
+    "nodes": {
+        "title": "Nodes",
+        "views": [],
+        "asset": "widgets/dashboard.js",
+        "summary": "Mesh node list with reachability and route counts.",
+        "dataShape": {"nodes": "[{name, url, reachable, routes, error}]"},
+    },
+    "routes": {
+        "title": "Routes",
+        "views": [],
+        "asset": "widgets/dashboard.js",
+        "summary": "Discovered URI routes (uri, node, kind, adapter).",
+        "dataShape": {"routes": "[{uri, node, kind, adapter}]"},
+    },
+    "contacts": {
+        "title": "Contacts",
+        "views": [],
+        "asset": "widgets/dashboard.js",
+        "summary": "Chat target contacts (host/nodes/services) with selection + actions.",
+        "dataShape": {"contacts": "[{id, label, kind, status, reachable, url, startUri, restartUri}]"},
+    },
 }
 
 # Order assets are concatenated into the bundle: helpers, every widget, then the dispatcher.
@@ -95,7 +160,12 @@ BUNDLE_ORDER = [
     "widgets/form.js",
     "widgets/graph.js",
     "widgets/generic.js",
+    "widgets/attachment.js",
+    "widgets/chat-message.js",
+    "widgets/artifact-grid.js",
+    "widgets/dashboard.js",
     "render.js",
+    "widgets/widget-card.js",
 ]
 
 # view-key -> catalogue id (so a published `view` resolves to its widget).

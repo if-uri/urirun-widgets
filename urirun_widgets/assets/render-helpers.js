@@ -32,6 +32,16 @@ export function basename(path) {
   return p.split(/[\\/]/).filter(Boolean).pop() || p;
 }
 
+// A small empty-state cell.
+export function empty(label) {
+  return `<div class="item subtle">${esc(label)}</div>`;
+}
+
+// The host's file-download endpoint for a local path (the convention the dashboard uses).
+export function filePreviewUrl(path) {
+  return path ? `/api/file?path=${encodeURIComponent(path)}` : '';
+}
+
 export function streamStatusClass(status) {
   if (status === 'accepted') return 'up';
   if (status === 'rejected' || status === 'failed') return 'down';

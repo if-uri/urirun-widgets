@@ -126,9 +126,86 @@ def test_catalog_views_match_renderer_keys():
 
 
 def test_every_python_renderer_renders_without_error():
-    # Each known view must render to non-empty HTML on minimal data (catches a renderer
-    # that drifted into requiring a field, or one wired to a missing helper).
+    # Each known view must render on minimal data without raising or hitting a missing
+    # helper (catches a renderer that drifted to require a field or lost a dependency).
+    # Live/stream widgets legitimately render nothing without data, so assert ok + a string
+    # rather than non-empty HTML.
     for view_key in render.RENDERERS:
         r = c.render_view(view=view_key, data="{}")
         assert r["ok"], f"{view_key} render failed: {r}"
-        assert isinstance(r["html"], str) and r["html"].strip(), f"{view_key} produced empty HTML"
+        assert isinstance(r["html"], str), f"{view_key} did not return HTML string"
+
+
+# --- dashboard widgets (attachment / chat-message / artifact-grid / widget-card / metrics /
+# task-table / nodes / routes / contacts) — extracted from host_dashboard, rendered explicitly
+# (no `view` key), so they live in DASHBOARD_RENDERERS, never in the RENDERERS/WIDGETS map. ---
+
+def test_dashboard_widgets_in_catalog_with_no_concrete_view():
+    r = c.list_widgets()
+    ids = {w["id"] for w in r["widgets"]}
+    for wid in ("attachment", "chat-message", "artifact-grid", "widget-card",
+                "metrics", "task-table", "nodes", "routes", "contacts"):
+        assert wid in ids, wid
+    # they must NOT introduce concrete view keys (would break the RENDERERS↔WIDGETS invariant)
+    assert _catalog_concrete_view_keys() == set(render.RENDERERS)
+
+
+def test_dashboard_renderers_match_catalog_dashboard_widgets():
+    # every dashboard renderer has a catalogue entry and vice-versa (the views==[] ones)
+    dashboard_catalog_ids = {wid for wid, spec in catalog.CATALOG.items()
+                             if not [v for v in spec.get("views", []) if v != "*"] and wid != "generic"}
+    assert dashboard_catalog_ids == set(render.DASHBOARD_RENDERERS)
+
+
+def test_render_attachment_widget():
+    att = {"path": "/scans/FV-1.pdf", "kind": "document-pdf", "previewUrl": "/api/file?path=/scans/FV-1.pdf",
+           "meta": {"ocr": {"ok": True, "backend": "paddle", "text": "FAKTURA VAT"}}}
+    r = c.render_view(widget="attachment", data=json.dumps({"att": att}))
+    assert r["ok"] and r["widget"] == "attachment"
+    assert "attachment-pdf-frame" in r["html"] and "FAKTURA VAT" in r["html"]
+
+
+def test_render_chat_message_with_attachment():
+    # a qr-code attachment is always shown; scanner frames are hidden unless an accepted
+    # document exists (see message_attachments filtering).
+    msg = {"role": "user", "content": "skan paragonu", "id": "m1",
+           "attachments": [{"path": "/s/qr.png", "kind": "qr-code", "previewUrl": "/api/file?path=/s/qr.png"}]}
+    r = c.render_view(widget="chat-message", data=json.dumps({"message": msg, "selectedIds": ["m1"]}))
+    assert r["ok"] and r["widget"] == "chat-message"
+    assert "skan paragonu" in r["html"] and "checked" in r["html"] and "attachment" in r["html"]
+
+
+def test_render_artifact_grid():
+    items = [{"id": "a1", "path": "/s/FV.pdf", "kind": "invoice", "uri": "doc://host/x",
+              "created_at": "2026-06-24", "meta": {"detectedDocument": {"type": "faktura", "amount": 1230}}}]
+    r = c.render_view(widget="artifact-grid", data=json.dumps({"items": items, "selectedIds": ["a1"]}))
+    assert r["ok"] and "artifact-file-row" in r["html"] and "faktura" in r["html"] and "checked" in r["html"]
+
+
+def test_render_metrics_and_tasks():
+    m = c.render_view(widget="metrics", data=json.dumps({"summary": {"taskCounts": {"open": 3}, "nodesOnline": 2}}))
+    assert m["ok"] and "open tasks" in m["html"] and ">3<" in m["html"]
+    t = c.render_view(widget="task-table", data=json.dumps({"tasks": [{"id": "T1", "name": "Do it", "status": "open"}]}))
+    assert t["ok"] and "T1" in t["html"] and "Do it" in t["html"]
+
+
+def test_render_unknown_dashboard_widget():
+    r = c.render_view(widget="nope", data="{}")
+    assert r["ok"] is False and "unknown dashboard widget" in r["error"]
+
+
+def test_render_svg_card():
+    view = {"view": "scanner-stream", "title": "scan", "status": "accepted",
+            "data": {"streams": [{"count": 3, "best": {"detectedDocument": {"type": "faktura", "amount": 1230}}}]}}
+    r = c.render_svg(data=json.dumps(view), width=600, height=160)
+    assert r["ok"] and r["format"] == "svg"
+    assert r["svg"].startswith("<svg") and "faktura" in r["svg"] and "accepted" in r["svg"]
+
+
+def test_dashboard_widget_assets_are_valid_in_bundle():
+    # the new modules must be included in the bundle and survive import-stripping
+    js = c.bundle_js()["js"]
+    for fn in ("renderAttachment", "renderChatMessage", "renderArtifactFileGrid",
+               "renderWidgetCard", "renderMetrics", "renderTasks", "renderContacts"):
+        assert f"function {fn}(" in js, fn
+    assert "from './" not in js and "from '../" not in js

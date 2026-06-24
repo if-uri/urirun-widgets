@@ -20,6 +20,7 @@
     "widget://host/registry/query/list",
     "widget://host/widget/query/get",
     "widget://host/widget/query/render",
+    "widget://host/widget/query/svg",
     "widget://host/bundle/query/js",
     "widget://host/bundle/query/css"
   ],

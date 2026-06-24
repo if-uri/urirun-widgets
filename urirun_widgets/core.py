@@ -85,11 +85,27 @@ def _coerce_view(view: str, data: str, title: str, status: str, target: str) -> 
 
 @WIDGET.handler("widget/query/render", isolated=True,
                 meta={"label": "Render a view to HTML server-side (Python mirror)", "cliAlias": "render"})
-def render_view(view: str = "", data: str = "", title: str = "", status: str = "", target: str = "") -> dict[str, Any]:
-    """Render a chat-stream view to an HTML string with the Python mirror of the widgets — for
-    headless surfaces (email, SVG, tests). Give the `view` key (table, image, form, ...) and
-    `data` (JSON for the view's data payload), or pass a full view object as `data`. Unknown
-    view keys fall back to the generic JSON dump, never an error."""
+def render_view(view: str = "", data: str = "", title: str = "", status: str = "",
+                target: str = "", widget: str = "") -> dict[str, Any]:
+    """Render a widget to an HTML string with the Python mirror — for headless surfaces (email,
+    SVG, tests). For a chat-stream service view: give the `view` key (table, image, form, ...)
+    and `data` (JSON for the view's data payload), or a full view object as `data`. For a
+    dashboard widget (attachment, chat-message, artifact-grid, widget-card, metrics, task-table,
+    nodes, routes, contacts): give `widget` and `data` (the widget's payload). Unknown view keys
+    fall back to the generic JSON dump, never an error."""
+    if widget:
+        renderer = _render.DASHBOARD_RENDERERS.get(widget)
+        if renderer is None:
+            return {"ok": False, "error": f"unknown dashboard widget '{widget}'",
+                    "connector": CONNECTOR_ID, "known": sorted(_render.DASHBOARD_RENDERERS)}
+        try:
+            payload = json.loads(data) if data else {}
+        except json.JSONDecodeError as exc:
+            return {"ok": False, "error": f"data is not valid JSON: {exc}", "connector": CONNECTOR_ID}
+        if not isinstance(payload, dict):
+            return {"ok": False, "error": "data must be a JSON object", "connector": CONNECTOR_ID}
+        return {"ok": True, "connector": CONNECTOR_ID, "kind": "render", "live": False,
+                "widget": widget, "html": renderer(payload)}
     view_obj = _coerce_view(view, data, title, status, target)
     if "__error__" in view_obj:
         return {"ok": False, "error": view_obj["__error__"], "connector": CONNECTOR_ID}
@@ -144,6 +160,21 @@ def bundle_css() -> dict[str, Any]:
     default theme variables a host can override)."""
     return {"ok": True, "connector": CONNECTOR_ID, "kind": "bundle", "live": False,
             "format": "css", "css": catalog.read_asset("widgets.css")}
+
+
+@WIDGET.handler("widget/query/svg", isolated=True,
+                meta={"label": "Render a service view as a compact SVG card", "cliAlias": "svg"})
+def render_svg(view: str = "", data: str = "", width: int = 720, height: int = 180,
+               title: str = "", status: str = "", target: str = "") -> dict[str, Any]:
+    """Render a service view as a compact SVG card (a badge for an email, README or status
+    page), mirroring the host's /services/view.svg. Give the `view` key + `data`, or a full
+    view object as `data`. Returns the SVG markup."""
+    view_obj = _coerce_view(view, data, title, status, target)
+    if "__error__" in view_obj:
+        return {"ok": False, "error": view_obj["__error__"], "connector": CONNECTOR_ID}
+    svg = _render.render_svg(view_obj, width=width, height=height)
+    return {"ok": True, "connector": CONNECTOR_ID, "kind": "svg", "live": False,
+            "view": view_obj.get("view"), "format": "svg", "svg": svg}
 
 
 def main(argv: list[str] | None = None) -> int:
