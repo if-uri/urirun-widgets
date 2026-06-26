@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scanner-stream widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: scanner-stream</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderScannerStreamView } from '../urirun_widgets/assets/widgets/scanner-stream.js';
+    document.getElementById('output').innerHTML = renderScannerStreamView({
+      view: 'scanner-stream', title: 'Phone scanner stream', status: 'running',
+      data: {
+        streams: [{
+          seriesId: 'series-001',
+          status: 'running',
+          count: 7,
+          updatedAt: '2026-06-26T10:00:00',
+          best: {
+            frameIndex: 5,
+            quality: { score: 8.7 },
+            detectedDocument: { type: 'faktura', date: '2026-06-25', amount: '1230.00' }
+          },
+          candidates: [
+            { frameIndex: 3, quality: { score: 6.1 }, detectedDocument: { type: 'faktura' } },
+            { frameIndex: 5, quality: { score: 8.7 }, detectedDocument: { type: 'faktura', amount: '1230.00' } },
+          ]
+        }]
+      }
+    });
+  </script>
+</body>
+</html>

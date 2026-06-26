@@ -183,6 +183,44 @@ def render_graph(view: dict) -> str:
     return _shell(view, body)
 
 
+def render_twin(view: dict) -> str:
+    data = view.get("data") or {}
+    reversible = data.get("reversible") is not False
+    status = data.get("status") or "unknown"
+    before = data.get("before") or {}
+    after = data.get("after") or {}
+
+    narration = (f'<div class="twin-narration{" blocked" if status == "blocked" else ""}">'
+                 f'{esc(data.get("narration") or "")}</div>') if data.get("narration") else ""
+    fwd = (f'<div class="twin-cmd twin-forward"><span class="twin-label">forward:</span> '
+           f'<code>{esc(data.get("forward") or "")}</code></div>') if data.get("forward") else ""
+    if reversible and data.get("inverse"):
+        inv = (f'<div class="twin-cmd twin-inverse"><span class="twin-label">inverse:</span> '
+               f'<code>{esc(data.get("inverse"))}</code></div>')
+    elif not reversible:
+        inv = ('<div class="twin-cmd twin-blocked"><span class="twin-label">inverse:</span> '
+               '<span class="twin-none">NONE — irreversible</span></div>')
+    else:
+        inv = ""
+
+    def _state_card(label: str, s: dict) -> str:
+        if not s or not s.get("fingerprint"):
+            return ""
+        url_span = f'<span class="twin-url">{esc(s.get("url") or "")}</span>' if s.get("url") else ""
+        return (f'<div class="twin-state"><span class="twin-label">{esc(label)}</span>'
+                f'<span class="twin-fp">{esc(s.get("fingerprint") or "")}</span>{url_span}</div>')
+
+    states = ""
+    if before.get("fingerprint") or after.get("fingerprint"):
+        states = (f'<div class="twin-states">'
+                  f'{_state_card("before", before)}'
+                  f'<div class="twin-state-arrow">&#x2192;</div>'
+                  f'{_state_card("after", after)}'
+                  f'</div>')
+    body = f'<div class="twin-panel">{narration}{fwd}{inv}{states}</div>'
+    return _shell(view, body)
+
+
 def render_generic(view: dict) -> str:
     data = view.get("data") or {}
     status = view.get("status") or "running"
@@ -301,6 +339,7 @@ RENDERERS = {
     "web": render_iframe,
     "form": render_form,
     "graph": render_graph,
+    "twin": render_twin,
 }
 
 

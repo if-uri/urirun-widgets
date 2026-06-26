@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Twin Monitor</title>
+    <style>
+        :root {
+            --bg-base: #020617; /* Deep ink-blue */
+            --grid-line: rgba(56, 189, 248, 0.1);
+            --grid-thick: rgba(56, 189, 248, 0.2);
+            --amber-forward: #f59e0b; /* Amber for forward */
+            --cyan-inverse: #06b6d4; /* Cyan for inverse */
+            --red-blocked: #e11d48; /* Red for blocked */
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --panel-bg: rgba(15, 23, 42, 0.8);
+            --panel-border: #1e293b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-base);
+            /* Hairline grid */
+            background-image: 
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-main);
+            font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 15px 20px;
+            background: rgba(2, 6, 23, 0.9);
+            border-bottom: 1px solid var(--grid-thick);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--cyan-inverse);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--amber-forward);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--amber-forward);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; box-shadow: 0 0 8px var(--amber-forward); }
+            50% { opacity: 0.5; box-shadow: 0 0 2px var(--amber-forward); }
+            100% { opacity: 1; box-shadow: 0 0 8px var(--amber-forward); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .mode-switch {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .scenes-container {
+            display: flex;
+            flex: 1;
+            gap: 40px;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        .scene {
+            flex: 1;
+            max-width: 800px;
+            height: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .scene-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .scene-before .scene-header { color: var(--text-muted); }
+        .scene-after .scene-header { color: var(--text-main); }
+
+        .transition-edge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-width: 150px;
+        }
+
+        .edge-line {
+            width: 100%;
+            height: 4px;
+            position: relative;
+        }
+
+        .edge-forward {
+            background: var(--amber-forward);
+            box-shadow: 0 0 10px var(--amber-forward);
+            margin-bottom: 2px;
+        }
+        
+        .edge-inverse {
+            background: var(--cyan-inverse);
+            box-shadow: 0 0 10px var(--cyan-inverse);
+        }
+
+        .edge-blocked {
+            background: var(--red-blocked);
+            box-shadow: 0 0 10px var(--red-blocked);
+        }
+
+        .edge-label {
+            font-size: 0.8rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .edge-label.forward { color: var(--amber-forward); }
+        .edge-label.inverse { color: var(--cyan-inverse); }
+        .edge-label.blocked { color: var(--red-blocked); }
+
+        .monitor-map {
+            flex: 1;
+            position: relative;
+            margin: 20px;
+            border: 1px dashed var(--grid-thick);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .monitor-container {
+            position: relative;
+            transform-origin: center center;
+        }
+
+        .monitor {
+            position: absolute;
+            border: 1px solid var(--text-muted);
+            background: rgba(255,255,255,0.02);
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .monitor-label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .window {
+            position: absolute;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .window-titlebar {
+            height: 12px;
+            background: rgba(255,255,255,0.2);
+            width: 100%;
+        }
+
+        .window-scroll-indicator {
+            position: absolute;
+            right: 0;
+            top: 12px;
+            width: 4px;
+            background: rgba(255,255,255,0.4);
+        }
+
+        .highlight-window {
+            border-color: var(--amber-forward);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .scene-after .highlight-window {
+            border-color: var(--cyan-inverse);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .telemetry-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 130px;
+        }
+
+        .telemetry-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .telemetry-item {
+            display: flex;
+            gap: 8px;
+        }
+
+        .telemetry-label {
+            color: var(--text-muted);
+        }
+
+        .telemetry-value {
+            color: var(--cyan-inverse);
+        }
+
+        .narration-text {
+            font-size: 1.1rem;
+            color: var(--amber-forward);
+            border-left: 3px solid var(--amber-forward);
+            padding-left: 10px;
+        }
+
+        .narration-text.blocked {
+            color: var(--red-blocked);
+            border-left-color: var(--red-blocked);
+        }
+
+        .timeline-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+            margin-top: auto;
+        }
+
+        .timeline-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            background: var(--panel-border);
+            outline: none;
+            border-radius: 2px;
+        }
+
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--cyan-inverse);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--cyan-inverse);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">
+            <div class="live-indicator" id="liveIndicator"></div>
+            Digital Twin Monitor
+        </div>
+        <div class="controls">
+            <div class="mode-switch">
+                SOURCE: <select id="sourceSelect" style="background:transparent; color:var(--cyan-inverse); border:1px solid var(--panel-border); padding:2px 5px;">
+                    <option value="demo">DEMO</option>
+                    <option value="live">LIVE (SSE)</option>
+                </select>
+            </div>
+            <div class="mode-switch">
+                SURFACE: <span id="surfaceIndicator" style="color:var(--text-main)">--</span>
+            </div>
+        </div>
+    </div>
+    <div class="header" style="background: rgba(15, 23, 42, 0.9); padding: 5px 20px; font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px dashed var(--grid-thick); min-height: 25px;">
+        <div id="contextInfo" style="display: flex; gap: 20px;">
+            <div>TARGETS: <span id="ctxTargets" style="color: var(--text-main);">--</span></div>
+            <div>PROMPT: <span id="ctxPrompt" style="color: var(--text-main); font-style: italic;">--</span></div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="scenes-container">
+            <div class="scene scene-before">
+                <div class="scene-header">
+                    <span>NOW (Before)</span>
+                    <span id="beforeOs">--</span>
+                </div>
+                <div class="monitor-map" id="mapBefore"></div>
+            </div>
+
+            <div class="transition-edge">
+                <div class="edge-label forward" id="forwardLabel">forward: ?</div>
+                <div class="edge-line edge-forward" id="forwardLine"></div>
+                <div class="edge-line edge-inverse" id="inverseLine"></div>
+                <div class="edge-label inverse" id="inverseLabel">inverse: ?</div>
+            </div>
+
+            <div class="scene scene-after" id="sceneAfterPanel">
+                <div class="scene-header">
+                    <span id="afterTitle">NEXT (Expected)</span>
+                    <span id="afterSig">--</span>
+                </div>
+                <div class="monitor-map" id="mapAfter"></div>
+            </div>
+        </div>
+
+        <div class="telemetry-panel">
+            <div class="narration-text" id="sayLead">Waiting for telemetry...</div>
+            <div class="telemetry-row">
+                <div class="telemetry-item">
+                    <span class="telemetry-label">FINGERPRINT:</span>
+                    <span class="telemetry-value" id="fingerprintVal">--</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">URL:</span>
+                    <span class="telemetry-value" id="urlVal">--</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">STATUS:</span>
+                    <span class="telemetry-value" id="statusVal">--</span>
+                </div>
+            </div>
+            <div class="timeline-container">
+                <span style="font-size: 0.8rem; color: var(--text-muted)">TIMELINE (Rollback/History):</span>
+                <input type="range" min="0" max="0" value="0" class="timeline-slider" id="timelineSlider">
+                <span id="timelinePos" style="font-size: 0.8rem; width: 40px; text-align: right">0/0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Kontrakt Danych / Data Contract
+         * Zgodny z `reversible.py`
+         *
+         * interface WindowState {
+         *   x: number; y: number; width: number; height: number;
+         *   title: string; scrollY: number; scrollMax: number;
+         * }
+         * 
+         * interface MonitorState {
+         *   id: string; x: number; y: number; width: number; height: number; scale: number;
+         * }
+         * 
+         * interface TwinState {
+         *   node: string;
+         *   os: string;
+         *   surface: string; // "atspi/vision", "cdp"
+         *   fingerprint: string;
+         *   stateSig: string;
+         *   url: string | null;
+         *   monitors: MonitorState[];
+         *   window: WindowState | null;
+         * }
+         * 
+         * interface Transition {
+         *   before: TwinState;
+         *   forward: string;
+         *   inverse: string | null;
+         *   after: TwinState;
+         *   reversible: boolean;
+         * }
+         * 
+         * interface TwinEvent {
+         *   transition: Transition;
+         *   narration: string;
+         *   status: 'applied' | 'blocked';
+         * }
+         */
+
+        const DEMO_MONITORS = [
+            { id: "DP-1", x: 0, y: 0, width: 3200, height: 1800, scale: 1.5 },
+            { id: "HDMI-1", x: 3200, y: 0, width: 1920, height: 1080, scale: 1.0 }
+        ];
+
+        const DEMO_HISTORY = [
+            {
+                status: 'applied',
+                narration: "Otwieram przeglądarkę na profilu domyślnym",
+                transition: {
+                    reversible: true,
+                    forward: "launch_browser()",
+                    inverse: "close_browser()",
+                    before: {
+                        node: "laptop", os: "linux/wayland", surface: "atspi/vision",
+                        fingerprint: "desktop_empty", stateSig: "sig_001", url: null,
+                        monitors: DEMO_MONITORS, window: null
+                    },
+                    after: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "browser_new_tab", stateSig: "sig_002", url: "about:blank",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "New Tab", scrollY: 0, scrollMax: 1000 }
+                    }
+                }
+            },
+            {
+                status: 'applied',
+                narration: "Nawiguję do LinkedIn",
+                transition: {
+                    reversible: true,
+                    forward: "goto('https://linkedin.com')",
+                    inverse: "history_back()",
+                    before: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "browser_new_tab", stateSig: "sig_002", url: "about:blank",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "New Tab", scrollY: 0, scrollMax: 1000 }
+                    },
+                    after: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "linkedin_feed", stateSig: "sig_003", url: "https://linkedin.com/feed",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "LinkedIn", scrollY: 0, scrollMax: 3000 }
+                    }
+                }
+            },
+            {
+                status: 'applied',
+                narration: "Scrolluję, by znaleźć pole nowej wiadomości",
+                transition: {
+                    reversible: true,
+                    forward: "scroll_down(500)",
+                    inverse: "scroll_up(500)",
+                    before: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "linkedin_feed", stateSig: "sig_003", url: "https://linkedin.com/feed",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "LinkedIn", scrollY: 0, scrollMax: 3000 }
+                    },
+                    after: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "linkedin_feed_scrolled", stateSig: "sig_004", url: "https://linkedin.com/feed",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "LinkedIn", scrollY: 500, scrollMax: 3000 }
+                    }
+                }
+            },
+            {
+                status: 'blocked',
+                narration: "NIEWYKONYWALNA: Akcja 'wyślij e-mail' nie ma inwersu, czekam na decyzję usera.",
+                transition: {
+                    reversible: false,
+                    forward: "click('Wyślij')",
+                    inverse: null,
+                    before: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "linkedin_feed_scrolled", stateSig: "sig_004", url: "https://linkedin.com/feed",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "LinkedIn", scrollY: 500, scrollMax: 3000 }
+                    },
+                    after: {
+                        node: "laptop", os: "linux/wayland", surface: "cdp",
+                        fingerprint: "linkedin_message_sent", stateSig: "sig_005", url: "https://linkedin.com/feed",
+                        monitors: DEMO_MONITORS,
+                        window: { x: 100, y: 100, width: 1200, height: 800, title: "LinkedIn", scrollY: 500, scrollMax: 3000 }
+                    }
+                }
+            }
+        ];
+
+        const mapBefore = document.getElementById('mapBefore');
+        const mapAfter = document.getElementById('mapAfter');
+
+        function renderMonitors(container, state, isAfter) {
+            container.innerHTML = '';
+            if (!state || !state.monitors) return;
+
+            let minX = Math.min(...state.monitors.map(m => m.x));
+            let minY = Math.min(...state.monitors.map(m => m.y));
+            let maxX = Math.max(...state.monitors.map(m => m.x + m.width));
+            let maxY = Math.max(...state.monitors.map(m => m.y + m.height));
+            
+            let totalW = maxX - minX;
+            let totalH = maxY - minY;
+
+            let cw = container.clientWidth - 40;
+            let ch = container.clientHeight - 40;
+            if (cw <= 0 || ch <= 0) return;
+
+            let scale = Math.min(cw / totalW, ch / totalH);
+
+            let wrapper = document.createElement('div');
+            wrapper.className = 'monitor-container';
+            wrapper.style.width = `${totalW * scale}px`;
+            wrapper.style.height = `${totalH * scale}px`;
+
+            state.monitors.forEach(m => {
+                let monDiv = document.createElement('div');
+                monDiv.className = 'monitor';
+                monDiv.style.left = `${(m.x - minX) * scale}px`;
+                monDiv.style.top = `${(m.y - minY) * scale}px`;
+                monDiv.style.width = `${m.width * scale}px`;
+                monDiv.style.height = `${m.height * scale}px`;
+
+                let lbl = document.createElement('div');
+                lbl.className = 'monitor-label';
+                lbl.innerText = `${m.id} ${m.width}x${m.height}@${m.scale}`;
+                monDiv.appendChild(lbl);
+
+                wrapper.appendChild(monDiv);
+            });
+
+            if (state.window) {
+                let w = state.window;
+                let winDiv = document.createElement('div');
+                winDiv.className = `window ${isAfter ? 'highlight-window' : 'highlight-window'}`;
+                winDiv.style.left = `${(w.x - minX) * scale}px`;
+                winDiv.style.top = `${(w.y - minY) * scale}px`;
+                winDiv.style.width = `${w.width * scale}px`;
+                winDiv.style.height = `${w.height * scale}px`;
+
+                let tb = document.createElement('div');
+                tb.className = 'window-titlebar';
+                winDiv.appendChild(tb);
+
+                if (w.scrollMax > 0) {
+                    let sb = document.createElement('div');
+                    sb.className = 'window-scroll-indicator';
+                    let hRatio = Math.max(0.1, Math.min(1.0, w.height / w.scrollMax));
+                    let scrollH = w.height * hRatio;
+                    let scrollYRatio = w.scrollY / Math.max(1, (w.scrollMax - w.height));
+                    let scrollTop = scrollYRatio * (w.height - scrollH);
+                    
+                    sb.style.height = `${scrollH * scale}px`;
+                    sb.style.top = `${(12 + scrollTop) * scale}px`;
+                    winDiv.appendChild(sb);
+                }
+
+                wrapper.appendChild(winDiv);
+            }
+
+            container.appendChild(wrapper);
+        }
+
+        function applyEvent(ev) {
+            const { transition, narration, status } = ev;
+            
+            document.getElementById('beforeOs').innerText = `${transition.before.os}`;
+            document.getElementById('afterSig').innerText = `${transition.after.stateSig}`;
+            
+            document.getElementById('fingerprintVal').innerText = transition.before.fingerprint;
+            document.getElementById('urlVal').innerText = transition.before.url || 'N/A';
+            document.getElementById('surfaceIndicator').innerText = transition.before.surface;
+
+            let sayLead = document.getElementById('sayLead');
+            sayLead.innerText = narration;
+            sayLead.className = `narration-text ${status === 'blocked' ? 'blocked' : ''}`;
+
+            let statusVal = document.getElementById('statusVal');
+            statusVal.innerText = status.toUpperCase();
+            statusVal.style.color = status === 'blocked' ? 'var(--red-blocked)' : 'var(--amber-forward)';
+
+            document.getElementById('forwardLabel').innerText = `forward: ${transition.forward}`;
+            document.getElementById('inverseLabel').innerText = transition.inverse ? `inverse: ${transition.inverse}` : 'inverse: NONE';
+            
+            let fwdLine = document.getElementById('forwardLine');
+            let invLine = document.getElementById('inverseLine');
+            
+            if (status === 'blocked') {
+                fwdLine.className = 'edge-line edge-blocked';
+                invLine.className = 'edge-line';
+                invLine.style.display = 'none';
+                document.getElementById('inverseLabel').style.display = 'none';
+                document.getElementById('afterTitle').innerText = 'BLOCKED (Unreachable)';
+                document.getElementById('sceneAfterPanel').style.borderColor = 'var(--red-blocked)';
+            } else {
+                fwdLine.className = 'edge-line edge-forward';
+                invLine.className = 'edge-line edge-inverse';
+                invLine.style.display = 'block';
+                document.getElementById('inverseLabel').style.display = 'block';
+                document.getElementById('afterTitle').innerText = 'NEXT (Expected)';
+                document.getElementById('sceneAfterPanel').style.borderColor = 'var(--panel-border)';
+            }
+
+            renderMonitors(mapBefore, transition.before, false);
+            renderMonitors(mapAfter, transition.after, true);
+        }
+        
+        let demoHistory = [];
+        let demoInterval = null;
+        let currentStep = -1;
+        let eventSource = null;
+
+        const slider = document.getElementById('timelineSlider');
+        const timelinePos = document.getElementById('timelinePos');
+        const sourceSelect = document.getElementById('sourceSelect');
+
+        function updateUrlState() {
+            const url = new URL(window.location);
+            url.searchParams.set('source', sourceSelect.value);
+            if (sourceSelect.value === 'demo') {
+                url.searchParams.set('step', currentStep);
+            } else {
+                url.searchParams.delete('step');
+            }
+            window.history.replaceState({}, '', url);
+        }
+
+        function updateSlider() {
+            slider.max = Math.max(0, demoHistory.length - 1);
+            slider.value = currentStep;
+            timelinePos.innerText = `${currentStep + 1}/${demoHistory.length}`;
+        }
+
+        function runDemoStep() {
+            if (currentStep < DEMO_HISTORY.length - 1) {
+                currentStep++;
+                demoHistory.push(DEMO_HISTORY[currentStep]);
+                applyEvent(demoHistory[currentStep]);
+                updateSlider();
+                updateUrlState();
+            } else {
+                clearInterval(demoInterval);
+            }
+        }
+
+        function startDemo() {
+            stopLive();
+            demoHistory = [];
+            currentStep = -1;
+            document.getElementById('liveIndicator').style.background = 'var(--text-muted)';
+            document.getElementById('liveIndicator').style.animation = 'none';
+            document.getElementById('liveIndicator').style.boxShadow = 'none';
+            
+            demoInterval = setInterval(runDemoStep, 2500);
+            runDemoStep();
+        }
+
+        function stopDemo() {
+            if (demoInterval) clearInterval(demoInterval);
+        }
+
+        function startLive() {
+            stopDemo();
+            demoHistory = [];
+            currentStep = -1;
+            document.getElementById('liveIndicator').style.background = 'var(--amber-forward)';
+            document.getElementById('liveIndicator').style.animation = 'pulse 2s infinite';
+            document.getElementById('sayLead').innerText = 'Łączenie ze strumieniem SSE (/events?scheme=twin)...';
+            
+            try {
+                eventSource = new EventSource('/events?scheme=twin');
+                eventSource.onmessage = (e) => {
+                    try {
+                        const ev = JSON.parse(e.data);
+                        demoHistory.push(ev);
+                        currentStep = demoHistory.length - 1;
+                        applyEvent(ev);
+                        updateSlider();
+                        updateUrlState();
+                    } catch (err) {
+                        console.error('Invalid twin frame:', e.data);
+                    }
+                };
+                eventSource.onerror = () => {
+                    document.getElementById('sayLead').innerText = 'Błąd SSE. Retrying...';
+                };
+            } catch (err) {
+                document.getElementById('sayLead').innerText = 'SSE nie powiodło się.';
+            }
+        }
+
+        function stopLive() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        }
+
+        slider.addEventListener('input', (e) => {
+            stopDemo();
+            const val = parseInt(e.target.value, 10);
+            if (val >= 0 && val < demoHistory.length) {
+                currentStep = val;
+                applyEvent(demoHistory[currentStep]);
+                timelinePos.innerText = `${currentStep + 1}/${demoHistory.length}`;
+                updateUrlState();
+            }
+        });
+
+        sourceSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'live') {
+                startLive();
+            } else {
+                startDemo();
+            }
+            updateUrlState();
+        });
+
+        window.addEventListener('resize', () => {
+            if (currentStep >= 0 && currentStep < demoHistory.length) {
+                const ev = demoHistory[currentStep];
+                renderMonitors(mapBefore, ev.transition.before, false);
+                renderMonitors(mapAfter, ev.transition.after, true);
+            }
+        });
+
+        // Initialize from URL or load DEMO
+        setTimeout(() => {
+            const params = new URLSearchParams(window.location.search);
+            const sourceParam = params.get('source');
+            const stepParam = params.get('step');
+            
+            if (params.has('prompt')) document.getElementById('ctxPrompt').innerText = params.get('prompt');
+            if (params.has('targets')) document.getElementById('ctxTargets').innerText = params.get('targets');
+            
+            if (sourceParam === 'live') {
+                sourceSelect.value = 'live';
+                startLive();
+            } else {
+                sourceSelect.value = 'demo';
+                if (stepParam !== null && stepParam !== "") {
+                    // Load specific step directly and pause
+                    const targetStep = parseInt(stepParam, 10);
+                    stopDemo();
+                    stopLive();
+                    const endStep = Math.min(targetStep, DEMO_HISTORY.length - 1);
+                    demoHistory = DEMO_HISTORY.slice(0, endStep + 1);
+                    currentStep = endStep;
+                    if (demoHistory[currentStep]) {
+                        applyEvent(demoHistory[currentStep]);
+                        updateSlider();
+                    }
+                } else {
+                    startDemo();
+                }
+            }
+            updateUrlState();
+        }, 100);
+
+    </script>
+</body>
+</html>

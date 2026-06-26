@@ -16,6 +16,7 @@ import { renderIframeServiceView } from './widgets/iframe.js';
 import { renderFormServiceView } from './widgets/form.js';
 import { renderGraphServiceView } from './widgets/graph.js';
 import { renderGenericServiceView } from './widgets/generic.js';
+import { renderTwinServiceView } from './widgets/twin.js';
 
 // view-key -> renderer. Keys mirror the `view` field a service publishes.
 export const WIDGETS = {
@@ -30,6 +31,7 @@ export const WIDGETS = {
   'web': renderIframeServiceView,
   'form': renderFormServiceView,
   'graph': renderGraphServiceView,
+  'twin': renderTwinServiceView,
 };
 
 export function renderServiceView(view) {
@@ -41,4 +43,5 @@ export {
   renderScannerStatusServiceView, renderScannerStreamView, renderTableServiceView,
   renderImageServiceView, renderVideoServiceView, renderIframeServiceView,
   renderFormServiceView, renderGraphServiceView, renderGenericServiceView,
+  renderTwinServiceView,
 };

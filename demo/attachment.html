@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>attachment widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    button, a { color: #58a6ff; font-size: 12px; }
+    a[download] { margin-left: 6px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: attachment</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderAttachment } from '../urirun_widgets/assets/widgets/attachment.js';
+    const el = document.getElementById('output');
+
+    el.innerHTML += renderAttachment({
+      path: '/scans/FV-001.pdf', kind: 'document-pdf',
+      previewUrl: '/api/file?path=/scans/FV-001.pdf',
+      meta: { ocr: { ok: true, backend: 'paddle', text: 'FAKTURA VAT NR 001/2026' }, width: 2480, height: 3508 }
+    });
+
+    el.innerHTML += renderAttachment({
+      path: '/scans/qr-code.png', kind: 'qr-code',
+      previewUrl: 'https://picsum.photos/seed/qr/200/200',
+      meta: {}
+    });
+
+    el.innerHTML += renderAttachment({
+      path: '/scans/missing.pdf', kind: 'document-pdf',
+      fileExists: false, previewExists: false, visualPreviewUrl: '', meta: {}
+    });
+  </script>
+</body>
+</html>

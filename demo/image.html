@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>image widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; display: grid; gap: 12px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: image / gallery</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderImageServiceView } from '../urirun_widgets/assets/widgets/image.js';
+    const el = document.getElementById('output');
+    // single image
+    el.innerHTML += renderImageServiceView({
+      view: 'image', title: 'Single image', status: 'running',
+      data: { url: 'https://picsum.photos/seed/urirun/400/220' }
+    });
+    // gallery
+    el.innerHTML += renderImageServiceView({
+      view: 'image-list', title: 'Gallery', status: 'accepted',
+      data: {
+        images: [
+          { url: 'https://picsum.photos/seed/a/200/150', label: 'scan-001.jpg' },
+          { url: 'https://picsum.photos/seed/b/200/150', label: 'scan-002.jpg' },
+          { url: 'https://picsum.photos/seed/c/200/150', label: 'scan-003.jpg' },
+        ]
+      }
+    });
+  </script>
+</body>
+</html>

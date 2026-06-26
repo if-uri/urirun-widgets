@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>table widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: table</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderTableServiceView } from '../urirun_widgets/assets/widgets/table.js';
+    document.getElementById('output').innerHTML = renderTableServiceView({
+      view: 'table', title: 'VAT Register', status: 'running',
+      data: {
+        columns: ['nip', 'company', 'gross'],
+        rows: [
+          { nip: '7781422455', company: 'Acme Sp. z o.o.', gross: 1230.00 },
+          { nip: '1132871234', company: 'Beta SA', gross: 615.00 },
+          { nip: '5252345678', company: 'Gamma GmbH', gross: 2460.50 },
+        ]
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>twin widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 600px; display: grid; gap: 12px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a> | <a href="twin-monitor.html">→ full-page monitor</a></nav>
+  <h1>widget: twin (reversible-process step — chat view)</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderTwinServiceView } from '../urirun_widgets/assets/widgets/twin.js';
+    const el = document.getElementById('output');
+
+    // applied reversible step
+    el.innerHTML += renderTwinServiceView({
+      view: 'twin', title: 'Twin Monitor', status: 'running',
+      data: {
+        narration: 'Nawiguję do LinkedIn',
+        status: 'applied',
+        forward: "goto('https://linkedin.com')",
+        inverse: 'history_back()',
+        reversible: true,
+        before: { fingerprint: 'browser_new_tab', stateSig: 'sig_002', url: 'about:blank' },
+        after:  { fingerprint: 'linkedin_feed',   stateSig: 'sig_003', url: 'https://linkedin.com/feed' },
+      }
+    });
+
+    // blocked irreversible step
+    el.innerHTML += renderTwinServiceView({
+      view: 'twin', title: 'Twin Monitor', status: 'blocked',
+      data: {
+        narration: "NIEWYKONYWALNA: Akcja 'wyślij e-mail' nie ma inwersu — czekam na decyzję usera.",
+        status: 'blocked',
+        forward: "click('Wyślij')",
+        inverse: null,
+        reversible: false,
+        before: { fingerprint: 'linkedin_feed_scrolled', stateSig: 'sig_004', url: 'https://linkedin.com/feed' },
+        after:  { fingerprint: 'linkedin_message_sent', stateSig: 'sig_005', url: 'https://linkedin.com/feed' },
+      }
+    });
+  </script>
+</body>
+</html>

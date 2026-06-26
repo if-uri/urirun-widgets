@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>urirun-widgets demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 24px; }
+    h1 { font-size: 1.1rem; color: #8b949e; margin: 0 0 20px; letter-spacing: .03em; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .card {
+      display: grid; gap: 4px; padding: 14px;
+      border: 1px solid #21262d; border-radius: 8px;
+      background: #161b22; text-decoration: none; color: inherit;
+      transition: border-color .15s;
+    }
+    .card:hover { border-color: #388bfd; }
+    .card strong { font-size: 14px; color: #e6edf3; }
+    .card small { font-size: 12px; color: #8b949e; line-height: 1.5; }
+    .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px;
+           background: rgba(56,139,253,.12); color: #388bfd; margin-bottom: 4px; }
+    .tag.dashboard { background: rgba(63,185,80,.12); color: #3fb950; }
+    .sep { font-size: 11px; color: #484f58; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: .06em; }
+  </style>
+</head>
+<body>
+  <h1>urirun-widgets — standalone demos</h1>
+  <p style="font-size:13px; color:#8b949e; margin:0 0 20px">
+    Start the server: <code style="background:#161b22; padding:2px 6px; border-radius:4px; font-size:12px">python demo/serve.py</code>
+    then reload this page.
+  </p>
+
+  <div class="sep">chat-stream widgets (selected by view key)</div>
+  <div class="grid">
+    <a class="card" href="table.html">
+      <span class="tag">view: table</span>
+      <strong>Table</strong>
+      <small>Tabular data; columns inferred from rows or given explicitly.</small>
+    </a>
+    <a class="card" href="image.html">
+      <span class="tag">view: image / image-list</span>
+      <strong>Image / gallery</strong>
+      <small>One image or a gallery of images with labels.</small>
+    </a>
+    <a class="card" href="video.html">
+      <span class="tag">view: video</span>
+      <strong>Video</strong>
+      <small>A video/stream player.</small>
+    </a>
+    <a class="card" href="iframe.html">
+      <span class="tag">view: iframe / page / web</span>
+      <strong>Embedded page</strong>
+      <small>An embedded page in an iframe.</small>
+    </a>
+    <a class="card" href="form.html">
+      <span class="tag">view: form</span>
+      <strong>Form</strong>
+      <small>A fillable form that runs an action URI on submit.</small>
+    </a>
+    <a class="card" href="graph.html">
+      <span class="tag">view: graph</span>
+      <strong>Graph</strong>
+      <small>Nodes and edges listing.</small>
+    </a>
+    <a class="card" href="generic.html">
+      <span class="tag">view: *</span>
+      <strong>Generic (fallback)</strong>
+      <small>Pretty-prints the data for any unknown view key.</small>
+    </a>
+    <a class="card" href="scanner-status.html">
+      <span class="tag">view: scanner-status</span>
+      <strong>Scanner status</strong>
+      <small>Phone-scanner service + browser-camera health and recent artifacts.</small>
+    </a>
+    <a class="card" href="scanner-stream.html">
+      <span class="tag">view: scanner-stream</span>
+      <strong>Scanner stream</strong>
+      <small>Live phone-scanner stream: best candidate, per-frame thumbnails.</small>
+    </a>
+    <a class="card" href="twin.html">
+      <span class="tag">view: twin</span>
+      <strong>Twin step</strong>
+      <small>Reversible-process step: narration, forward/inverse commands, before/after fingerprints.</small>
+    </a>
+  </div>
+
+  <div class="sep">dashboard widgets (rendered explicitly by name)</div>
+  <div class="grid">
+    <a class="card" href="attachment.html">
+      <span class="tag dashboard">attachment</span>
+      <strong>Attachment</strong>
+      <small>One chat attachment: scan/PDF/image/QR preview + OCR line + metadata.</small>
+    </a>
+    <a class="card" href="chat-message.html">
+      <span class="tag dashboard">chat-message</span>
+      <strong>Chat message</strong>
+      <small>A chat message: role, content, URI timeline and its attachments.</small>
+    </a>
+    <a class="card" href="artifact-grid.html">
+      <span class="tag dashboard">artifact-grid</span>
+      <strong>Artifact file grid</strong>
+      <small>Grid of stored artifacts (scans/PDFs/images) with preview and actions.</small>
+    </a>
+    <a class="card" href="dashboard.html">
+      <span class="tag dashboard">metrics / task-table / nodes / routes / contacts</span>
+      <strong>Dashboard widgets</strong>
+      <small>Top-line counters, task table, node list, route list, contacts.</small>
+    </a>
+  </div>
+
+  <div class="sep">full-page tools</div>
+  <div class="grid">
+    <a class="card" href="twin-monitor.html">
+      <span class="tag">full-page</span>
+      <strong>Digital Twin Monitor</strong>
+      <small>Full-page reversible-process monitor with DEMO/LIVE SSE mode and timeline slider.</small>
+    </a>
+  </div>
+</body>
+</html>

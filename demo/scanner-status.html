@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scanner-status widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: scanner-status</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderScannerStatusServiceView } from '../urirun_widgets/assets/widgets/scanner-status.js';
+    document.getElementById('output').innerHTML = renderScannerStatusServiceView({
+      view: 'scanner-status', title: 'Phone scanner', status: 'running',
+      data: {
+        service: { status: 'running', url: 'http://localhost:8196', reachable: true },
+        cameraStatus: { ready: true, width: 1920, height: 1080, track: { readyState: 'live', label: 'FaceTime HD Camera' } },
+        recentArtifacts: [
+          { kind: 'document-pdf', path: '/scans/FV-001.pdf', previewUrl: '', label: 'FV-001.pdf', date: '2026-06-26', amount: '1230.00' },
+        ]
+      }
+    });
+  </script>
+</body>
+</html>

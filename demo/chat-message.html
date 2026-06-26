@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>chat-message widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; display: grid; gap: 10px; }
+    button { cursor: pointer; padding: 4px 10px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; font-size: 12px; }
+    button.danger { border-color: #f85149; color: #f85149; }
+    input[type=checkbox] { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: chat-message</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderChatMessage } from '../urirun_widgets/assets/widgets/chat-message.js';
+    const el = document.getElementById('output');
+
+    el.innerHTML += renderChatMessage({
+      id: 'u1', role: 'user', content: 'skan paragonu z Biedronki',
+      created_at: '2026-06-26 10:00',
+      attachments: [{ path: '/scans/paragon.jpg', kind: 'image', previewUrl: 'https://picsum.photos/seed/scan/200/150' }]
+    }, ['u1']);
+
+    el.innerHTML += renderChatMessage({
+      id: 's1', role: 'system', content: 'Paragon zeskanowany. Wykryto: sklep Biedronka, suma 42.50 PLN.',
+      created_at: '2026-06-26 10:00',
+      detail: {
+        timeline: [
+          { ok: true, target: 'scanner://host', uri: 'scanner://host/capture/action/scan' },
+          { ok: true, target: 'doc://host',     uri: 'doc://host/document/action/extract' },
+        ]
+      }
+    }, []);
+  </script>
+</body>
+</html>

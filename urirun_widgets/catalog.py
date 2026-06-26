@@ -81,6 +81,21 @@ CATALOG: dict[str, dict[str, Any]] = {
         "summary": "Fallback for any view without a dedicated renderer; pretty-prints the data.",
         "dataShape": {"*": "any"},
     },
+    "twin": {
+        "title": "Twin step",
+        "views": ["twin"],
+        "asset": "widgets/twin.js",
+        "summary": "Reversible-process step: narration, forward/inverse commands, before/after state fingerprints.",
+        "dataShape": {
+            "narration": "string",
+            "status": "'applied'|'blocked'",
+            "forward": "string",
+            "inverse": "string|null",
+            "reversible": "boolean",
+            "before": "{fingerprint, stateSig, url}",
+            "after": "{fingerprint, stateSig, url}",
+        },
+    },
     # --- dashboard widgets: rendered explicitly by the host (not selected by a `view` key), so
     # they carry no concrete `views` and stay out of the renderServiceView dispatch map. -----
     "attachment": {
@@ -160,6 +175,7 @@ BUNDLE_ORDER = [
     "widgets/form.js",
     "widgets/graph.js",
     "widgets/generic.js",
+    "widgets/twin.js",
     "widgets/attachment.js",
     "widgets/chat-message.js",
     "widgets/artifact-grid.js",

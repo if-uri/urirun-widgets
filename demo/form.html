@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>form widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 480px; }
+    button { cursor: pointer; padding: 6px 14px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; }
+    input { padding: 5px 8px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; width: 100%; }
+    input[type=checkbox] { width: auto; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: form</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderFormServiceView } from '../urirun_widgets/assets/widgets/form.js';
+    document.getElementById('output').innerHTML = renderFormServiceView({
+      view: 'form', title: 'Send message', status: 'running',
+      data: {
+        actionUri: 'email://host/send/action/send',
+        fields: [
+          { name: 'to', label: 'Recipient', type: 'email', value: 'jan@example.com' },
+          { name: 'subject', label: 'Subject', type: 'text', value: 'Hello' },
+          { name: 'body', label: 'Body', type: 'text', value: '' },
+          { name: 'urgent', label: 'Urgent', type: 'checkbox', checked: false },
+        ]
+      }
+    });
+  </script>
+</body>
+</html>

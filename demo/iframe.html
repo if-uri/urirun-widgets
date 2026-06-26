@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iframe widget demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    .demo { max-width: 720px; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>widget: iframe / page / web</h1>
+  <div class="demo" id="output"></div>
+  <script type="module">
+    import { renderIframeServiceView } from '../urirun_widgets/assets/widgets/iframe.js';
+    document.getElementById('output').innerHTML = renderIframeServiceView({
+      view: 'page', title: 'ifURI website', status: 'running',
+      data: { url: 'https://ifuri.com' }
+    });
+  </script>
+</body>
+</html>
