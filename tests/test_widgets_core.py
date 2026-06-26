@@ -241,6 +241,54 @@ def test_dashboard_widget_dispatcher_asset_is_in_bundle():
     assert "'contacts': (data) => renderContacts" in js
 
 
+def test_render_twin_applied():
+    data = {
+        "narration": "Nawiguję do LinkedIn",
+        "status": "applied",
+        "forward": "goto('https://linkedin.com')",
+        "inverse": "history_back()",
+        "reversible": True,
+        "before": {"fingerprint": "browser_new_tab", "stateSig": "sig_002", "url": "about:blank"},
+        "after":  {"fingerprint": "linkedin_feed",   "stateSig": "sig_003", "url": "https://linkedin.com/feed"},
+    }
+    r = c.render_view(view="twin", data=json.dumps(data), title="Twin Monitor")
+    assert r["ok"] and r["widget"] == "twin"
+    html = r["html"]
+    assert "twin-panel" in html
+    assert "Nawiguję do LinkedIn" in html
+    assert "goto(" in html and "https://linkedin.com" in html
+    assert "history_back()" in html
+    assert "browser_new_tab" in html and "linkedin_feed" in html
+    assert "NONE" not in html  # reversible, so no NONE label
+
+
+def test_render_twin_blocked_irreversible():
+    data = {
+        "narration": "Akcja bez inwersu",
+        "status": "blocked",
+        "forward": "click('Wyślij')",
+        "inverse": None,
+        "reversible": False,
+        "before": {"fingerprint": "fp_before", "url": "https://linkedin.com"},
+        "after":  {"fingerprint": "fp_after",  "url": "https://linkedin.com"},
+    }
+    r = c.render_view(view="twin", data=json.dumps(data))
+    assert r["ok"] and r["widget"] == "twin"
+    html = r["html"]
+    assert "twin-blocked" in html and "NONE" in html and "irreversible" in html
+    assert "twin-narration blocked" in html
+
+
+def test_twin_in_catalogue_and_bundle():
+    # twin must appear in the catalogue list
+    ids = {w["id"] for w in c.list_widgets()["widgets"]}
+    assert "twin" in ids
+    # twin renderer must survive bundle import-stripping
+    js = c.bundle_js()["js"]
+    assert "function renderTwinServiceView(" in js
+    assert "'twin': renderTwinServiceView" in js
+
+
 def test_datashape_fields_referenced_consistently_in_js_and_python():
     """Content-drift guard (deeper than view-keys): for each widget, the JS source and the
     Python mirror must reference the SAME subset of the catalogue's declared dataShape

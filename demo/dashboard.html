@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dashboard widgets demo</title>
+  <link rel="stylesheet" href="../urirun_widgets/assets/widgets.css">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+    nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+    h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
+    h2 { font-size: .85rem; color: #8b949e; margin: 20px 0 8px; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+    .demo { max-width: 900px; }
+    button { cursor: pointer; padding: 4px 10px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; font-size: 12px; }
+    button.danger { border-color: #f85149; color: #f85149; }
+    input[type=checkbox] { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← all widgets</a></nav>
+  <h1>dashboard widgets: metrics · task-table · nodes · routes · contacts</h1>
+  <div class="demo">
+    <h2>metrics</h2>
+    <div class="metrics" id="metrics"></div>
+
+    <h2>task-table</h2>
+    <table id="tasks"></table>
+
+    <h2>nodes</h2>
+    <div id="nodes"></div>
+
+    <h2>routes</h2>
+    <div id="routes"></div>
+
+    <h2>contacts</h2>
+    <div class="contact-list" id="contacts"></div>
+  </div>
+  <script type="module">
+    import { renderMetrics, renderTasks, renderNodes, renderRoutes, renderContacts } from '../urirun_widgets/assets/widgets/dashboard.js';
+
+    document.getElementById('metrics').outerHTML =
+      '<div class="metrics">' + renderMetrics({ taskCounts: { open: 3, in_progress: 1, blocked: 0 }, nodesOnline: 2, nodeCount: 3, routeCount: 47 }) + '</div>';
+
+    document.getElementById('tasks').innerHTML =
+      '<thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Queue</th><th>Priority</th><th>Actions</th></tr></thead><tbody>' +
+      renderTasks([
+        { id: 'T1', name: 'Skanuj faktury', description: 'Batch scan invoices for June', status: 'open', priority: 'high' },
+        { id: 'T2', name: 'Deploy lenovo', description: 'Deploy urirun to lenovo node', status: 'in_progress', priority: 'normal' },
+      ]) + '</tbody>';
+
+    document.getElementById('nodes').innerHTML =
+      renderNodes([
+        { name: 'laptop', url: 'http://localhost:8765', reachable: true, routes: Array(12) },
+        { name: 'lenovo-201', url: 'http://192.168.188.201:8765', reachable: true, routes: Array(8) },
+        { name: 'android', url: 'http://192.168.188.50:8195', reachable: false, routes: [], error: 'connection refused' },
+      ]);
+
+    document.getElementById('routes').innerHTML =
+      renderRoutes([
+        { uri: 'kvm://host/screen/query/screenshot', node: 'lenovo-201', kind: 'query', adapter: 'python' },
+        { uri: 'browser://host/page/action/goto', node: 'laptop', kind: 'action', adapter: 'python' },
+        { uri: 'scanner://host/capture/action/scan', node: 'laptop', kind: 'action', adapter: 'python' },
+      ]);
+
+    document.getElementById('contacts').innerHTML =
+      renderContacts([
+        { id: 'laptop', label: 'laptop (local)', kind: 'host', status: 'running', reachable: true, url: 'http://localhost:8765' },
+        { id: 'lenovo-201', label: 'lenovo-201', kind: 'node', status: 'running', reachable: true, url: 'http://192.168.188.201:8765', startUri: 'kvm://host/desktop/action/start' },
+        { id: 'android', label: 'android phone', kind: 'node', status: 'stopped', reachable: false, url: 'http://192.168.188.50:8195' },
+      ], ['laptop']);
+  </script>
+</body>
+</html>
