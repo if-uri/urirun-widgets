@@ -44,6 +44,7 @@ export function renderAttachment(att) {
   const download = fileUrl ? `<a href="${esc(fileUrl)}" download>download</a>` : '';
   const missing = att.fileExists === false ? '<span class="pill down">missing file</span>' : '';
   const detailAtt = fileAvailable ? att : {...att, previewUrl: '', filePreviewUrl: ''};
+  const ocr = att.ocr || {};
   const ocrLine = ocr.ok
     ? `<div class="subtle">OCR ${esc(ocr.backend || '')}: ${esc(text(ocr.text).slice(0, 160))}</div>`
     : (ocr.error ? `<div class="subtle">OCR: ${esc(ocr.error)}</div>` : '');
