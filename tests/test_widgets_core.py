@@ -177,6 +177,17 @@ def test_render_attachment_missing_pdf_does_not_embed_stale_file_url():
     assert "missing file" in r["html"]
 
 
+def test_render_attachment_twin_monitor():
+    att = {"kind": "twin-monitor", "path": "Digital Twin Widget",
+           "uri": "/twin?source=live&execute=1&prompt=test", "fileExists": False}
+    r = c.render_view(widget="attachment", data=json.dumps({"att": att}))
+    assert r["ok"] and r["widget"] == "attachment"
+    assert "iframe" in r["html"]
+    assert "/twin?source=live" in r["html"]
+    assert "attachment-widget" in r["html"]
+    assert "preview unavailable" not in r["html"]
+
+
 def test_render_chat_message_with_attachment():
     # a qr-code attachment is always shown; scanner frames are hidden unless an accepted
     # document exists (see message_attachments filtering).

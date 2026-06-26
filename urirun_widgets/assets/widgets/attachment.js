@@ -22,8 +22,11 @@ export function isScannerFrameAttachment(att) {
 }
 
 export function renderAttachment(att) {
+  if (att.kind === 'twin-monitor') {
+    const url = esc(att.uri || '/twin');
+    return `<div class="attachment attachment-widget" style="width:100%;"><iframe src="${url}" title="Digital Twin Monitor" style="width:100%;height:450px;border:1px solid var(--border-color);border-radius:4px;" loading="lazy"></iframe></div>`;
+  }
   const meta = att.meta || {};
-  const ocr = meta.ocr || {};
   const isPdf = isPdfAttachment(att);
   const fileAvailable = att.fileExists !== false;
   const kindClass = att.kind === 'qr-code' ? ' attachment-qr' : isPdf ? ' attachment-pdf' : '';

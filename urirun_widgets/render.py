@@ -435,6 +435,11 @@ def _attachment_visual_url(att: dict) -> str:
 
 def render_attachment(att: dict) -> str:
     att = att or {}
+    if att.get("kind") == "twin-monitor":
+        url = esc(att.get("uri") or "/twin")
+        return (f'<div class="attachment attachment-widget" style="width:100%;">'
+                f'<iframe src="{url}" title="Digital Twin Monitor"'
+                f' style="width:100%;height:450px;border:1px solid var(--border-color);border-radius:4px;" loading="lazy"></iframe></div>')
     meta = att.get("meta") or {}
     ocr = meta.get("ocr") or {}
     is_pdf = _is_pdf_attachment(att)
