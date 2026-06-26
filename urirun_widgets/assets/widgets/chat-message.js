@@ -13,6 +13,9 @@ export function messageAttachments(message) {
   const hasPdf = attachments.some(isPdfAttachment);
   return attachments.filter((att) => {
     if (isPdfAttachment(att)) return true;
+    // A confirmed previewUrl means a real file is there (e.g. a KVM screenshot stored with
+    // kind "image" or "screenshot") — never suppress it regardless of scanner-frame rules.
+    if (att.previewUrl) return true;
     if (hasPdf && isScannerFrameAttachment(att)) return false;
     if (isScannerFrameAttachment(att) && !(document.ok && document.path)) return false;
     return true;
