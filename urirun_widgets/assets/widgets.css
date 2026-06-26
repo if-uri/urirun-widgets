@@ -309,6 +309,14 @@ th { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: upp
 .twin-constraint-what { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
 .twin-constraint-reason { color: var(--text); }
 .twin-constraint-fix { color: var(--good); font-size: 10px; }
+.twin-matrix { display: grid; grid-template-columns: 52px repeat(var(--mx-cols, 4), 1fr); gap: 1px 4px; font-size: 10px; padding: 4px 8px; background: var(--surface-2); border-radius: 6px; border: 1px solid var(--line-soft); }
+.twin-mx-hdr { color: var(--muted); text-align: center; font-weight: 600; padding-bottom: 2px; border-bottom: 1px solid var(--line-soft); }
+.twin-mx-row-label { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.twin-mx-cell { text-align: center; }
+.twin-mx-cell.exe  { color: var(--good); }
+.twin-mx-cell.deg  { color: var(--warn); }
+.twin-mx-cell.nope { color: var(--bad); }
+.twin-mx-cell.na   { color: var(--line-soft); }
 
 /* --- chat message + attachments ---------------------------------------------------------- */
 .message {

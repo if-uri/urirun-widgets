@@ -40,6 +40,12 @@
           osLevelReliable: false,
           strategies: { cdp: true, atspi: true, vision: true },
           surface: 'desktop',
+          actionMatrix: {
+            cdp:    { locate:'executable',     click:'executable', type:'executable',     navigate:'executable',    screenshot:'executable' },
+            atspi:  { locate:'executable',     click:'executable', type:'not_executable', navigate:'not_applicable', screenshot:'not_applicable' },
+            uinput: { locate:'not_applicable', click:'executable', type:'not_executable', navigate:'not_applicable', screenshot:'blocked' },
+            vision: { locate:'degraded',       click:'degraded',   type:'not_applicable', navigate:'not_applicable', screenshot:'blocked' },
+          },
         },
         constraints: [
           { kind: 'blocked', what: 'screen_capture', reason: 'Wayland portal odmówił (code 2)', fix: 'użyj CDP screenshot' },

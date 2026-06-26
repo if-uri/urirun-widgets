@@ -40,7 +40,7 @@ export function renderTwinServiceView(view) {
     ? `<div class="twin-states">${stateCard('before', before)}<div class="twin-state-arrow">&#x2192;</div>${stateCard('after', after)}</div>`
     : '';
 
-  // env panel — dlaczego planner wybrał tę trasę
+  // env panel — dlaczego planner wybrał tę trasę + macierz zdolności per-akcja
   let envPanel = '';
   if (env) {
     const strat = env.strategies || {};
@@ -50,12 +50,34 @@ export function renderTwinServiceView(view) {
     const surface = env.surface ? `<span class="twin-env-surface">${esc(env.surface)}</span>` : '';
     const osWarn = env.osLevelReliable === false
       ? `<span class="twin-env-badge off" title="OS-level screen capture zawodny">portal⚠</span>` : '';
+
+    // action matrix: compact grid showing per-action executability
+    let matrixHtml = '';
+    const matrix = env.actionMatrix || null;
+    if (matrix) {
+      const ACTIONS = ['locate', 'click', 'type', 'navigate', 'screenshot'];
+      const SURFACES = Object.keys(matrix);
+      const ICON = {executable: '✓', degraded: '~', not_executable: '✗', not_applicable: '—', blocked: '✗'};
+      const CLS  = {executable: 'exe', degraded: 'deg', not_executable: 'nope', not_applicable: 'na', blocked: 'nope'};
+      const head = SURFACES.map(s => `<span class="twin-mx-hdr">${esc(s)}</span>`).join('');
+      const rows = ACTIONS.map(a => {
+        const cells = SURFACES.map(s => {
+          const v = (matrix[s] || {})[a] || 'not_applicable';
+          return `<span class="twin-mx-cell ${CLS[v]}" title="${esc(v)}">${ICON[v]}</span>`;
+        }).join('');
+        return `<span class="twin-mx-row-label">${esc(a)}</span>${cells}`;
+      }).join('');
+      matrixHtml = `<div class="twin-matrix" style="--mx-cols:${SURFACES.length}">
+        <span class="twin-mx-row-label"></span>${head}${rows}
+      </div>`;
+    }
+
     envPanel = `<div class="twin-env">
       <span class="twin-label">env:</span>
       <span class="twin-env-platform">${esc(env.platform || '?')}</span>
       <span class="twin-env-badge best">best:${esc(env.best || '?')}</span>
       ${stratBadges}${osWarn}${surface}
-    </div>`;
+    </div>${matrixHtml}`;
   }
 
   // constraints panel — co było niemożliwe i dlaczego

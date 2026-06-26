@@ -94,7 +94,7 @@ CATALOG: dict[str, dict[str, Any]] = {
             "reversible": "boolean",
             "before": "{fingerprint, stateSig, url}",
             "after": "{fingerprint, stateSig, url}",
-            "env": "{platform, best, controllable, osLevelReliable, strategies, surface}",
+            "env": "{platform, best, controllable, osLevelReliable, strategies, surface, actionMatrix}",
             "constraints": "[{kind:'blocked'|'missing'|'degraded', what, reason, fix}]",
         },
     },

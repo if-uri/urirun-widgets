@@ -230,11 +230,33 @@ def render_twin(view: dict) -> str:
                    if env.get("osLevelReliable") is False else "")
         surface = (f'<span class="twin-env-surface">{esc(env.get("surface"))}</span>'
                    if env.get("surface") else "")
-        env_panel = (f'<div class="twin-env">'
-                     f'<span class="twin-label">env:</span>'
-                     f'<span class="twin-env-platform">{esc(env.get("platform", "?"))}</span>'
-                     f'<span class="twin-env-badge best">best:{esc(env.get("best", "?"))}</span>'
-                     f'{badges}{os_warn}{surface}</div>')
+        env_row = (f'<div class="twin-env">'
+                   f'<span class="twin-label">env:</span>'
+                   f'<span class="twin-env-platform">{esc(env.get("platform", "?"))}</span>'
+                   f'<span class="twin-env-badge best">best:{esc(env.get("best", "?"))}</span>'
+                   f'{badges}{os_warn}{surface}</div>')
+        matrix = env.get("actionMatrix") or {}
+        matrix_html = ""
+        if matrix:
+            _ACTIONS = ("locate", "click", "type", "navigate", "screenshot")
+            _SURFACES = list(matrix.keys())
+            _ICON = {"executable": "✓", "degraded": "~", "not_executable": "✗",
+                     "not_applicable": "—", "blocked": "✗"}
+            _CLS = {"executable": "exe", "degraded": "deg", "not_executable": "nope",
+                    "not_applicable": "na", "blocked": "nope"}
+            head = "".join(f'<span class="twin-mx-hdr">{esc(s)}</span>' for s in _SURFACES)
+            rows = "".join(
+                f'<span class="twin-mx-row-label">{esc(a)}</span>'
+                + "".join(
+                    f'<span class="twin-mx-cell {_CLS.get(v, "na")}" title="{esc(v)}">{_ICON.get(v, "?")}</span>'
+                    for s in _SURFACES
+                    for v in [(matrix.get(s) or {}).get(a, "not_applicable")]
+                )
+                for a in _ACTIONS
+            )
+            matrix_html = (f'<div class="twin-matrix" style="--mx-cols:{len(_SURFACES)}">'
+                           f'<span class="twin-mx-row-label"></span>{head}{rows}</div>')
+        env_panel = env_row + matrix_html
 
     constraints_panel = ""
     constraints = data.get("constraints") or []
