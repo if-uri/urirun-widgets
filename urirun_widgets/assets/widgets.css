@@ -295,6 +295,20 @@ th { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: upp
 .twin-state-arrow { color: var(--muted); text-align: center; font-size: 16px; }
 .twin-fp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
 .twin-url { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.twin-env { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding: 5px 8px; background: var(--surface-2); border-radius: 6px; border: 1px solid var(--line-soft); font-size: 11px; }
+.twin-env-platform { color: var(--muted); }
+.twin-env-surface { color: var(--muted); font-style: italic; }
+.twin-env-badge { display: inline-block; padding: 1px 6px; border-radius: 999px; background: rgba(56,189,80,.15); color: var(--good); font-size: 10px; }
+.twin-env-badge.best { background: rgba(245,158,11,.15); color: var(--warn); }
+.twin-env-badge.off { background: rgba(248,81,73,.12); color: var(--bad); text-decoration: line-through; }
+.twin-constraints { display: grid; gap: 4px; font-size: 11px; }
+.twin-constraint { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: baseline; padding: 3px 8px; border-radius: 4px; }
+.twin-constraint-blocked { background: rgba(248,81,73,.08); border-left: 2px solid var(--bad); }
+.twin-constraint-missing { background: rgba(245,158,11,.08); border-left: 2px solid var(--warn); }
+.twin-constraint-degraded { background: rgba(139,148,158,.08); border-left: 2px solid var(--muted); }
+.twin-constraint-what { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+.twin-constraint-reason { color: var(--text); }
+.twin-constraint-fix { color: var(--good); font-size: 10px; }
 
 /* --- chat message + attachments ---------------------------------------------------------- */
 .message {

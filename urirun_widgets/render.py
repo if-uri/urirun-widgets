@@ -217,7 +217,41 @@ def render_twin(view: dict) -> str:
                   f'<div class="twin-state-arrow">&#x2192;</div>'
                   f'{_state_card("after", after)}'
                   f'</div>')
-    body = f'<div class="twin-panel">{narration}{fwd}{inv}{states}</div>'
+
+    env_panel = ""
+    env = data.get("env") or {}
+    if env:
+        strat = env.get("strategies") or {}
+        badges = "".join(
+            f'<span class="twin-env-badge{" " if v else " off"}">{esc(k)}</span>'
+            for k, v in strat.items()
+        )
+        os_warn = ('<span class="twin-env-badge off" title="OS-level screen capture zawodny">portal⚠</span>'
+                   if env.get("osLevelReliable") is False else "")
+        surface = (f'<span class="twin-env-surface">{esc(env.get("surface"))}</span>'
+                   if env.get("surface") else "")
+        env_panel = (f'<div class="twin-env">'
+                     f'<span class="twin-label">env:</span>'
+                     f'<span class="twin-env-platform">{esc(env.get("platform", "?"))}</span>'
+                     f'<span class="twin-env-badge best">best:{esc(env.get("best", "?"))}</span>'
+                     f'{badges}{os_warn}{surface}</div>')
+
+    constraints_panel = ""
+    constraints = data.get("constraints") or []
+    if constraints:
+        def _constraint(c: dict) -> str:
+            cls = {"blocked": "twin-constraint-blocked",
+                   "missing": "twin-constraint-missing"}.get(c.get("kind", ""), "twin-constraint-degraded")
+            fix = (f'<span class="twin-constraint-fix">→ {esc(c.get("fix"))}</span>'
+                   if c.get("fix") else "")
+            return (f'<div class="twin-constraint {cls}">'
+                    f'<span class="twin-constraint-what">{esc(c.get("what", ""))}</span>'
+                    f'<span class="twin-constraint-reason">{esc(c.get("reason", ""))}</span>'
+                    f'{fix}</div>')
+        items = "".join(_constraint(c) for c in constraints)
+        constraints_panel = f'<div class="twin-constraints"><span class="twin-label">ograniczenia:</span>{items}</div>'
+
+    body = f'<div class="twin-panel">{narration}{fwd}{inv}{states}{env_panel}{constraints_panel}</div>'
     return _shell(view, body)
 
 

@@ -85,7 +85,7 @@ CATALOG: dict[str, dict[str, Any]] = {
         "title": "Twin step",
         "views": ["twin"],
         "asset": "widgets/twin.js",
-        "summary": "Reversible-process step: narration, forward/inverse commands, before/after state fingerprints.",
+        "summary": "Reversible-process step: narration, forward/inverse commands, before/after state fingerprints, environment context and constraints.",
         "dataShape": {
             "narration": "string",
             "status": "'applied'|'blocked'",
@@ -94,6 +94,8 @@ CATALOG: dict[str, dict[str, Any]] = {
             "reversible": "boolean",
             "before": "{fingerprint, stateSig, url}",
             "after": "{fingerprint, stateSig, url}",
+            "env": "{platform, best, controllable, osLevelReliable, strategies, surface}",
+            "constraints": "[{kind:'blocked'|'missing'|'degraded', what, reason, fix}]",
         },
     },
     # --- dashboard widgets: rendered explicitly by the host (not selected by a `view` key), so

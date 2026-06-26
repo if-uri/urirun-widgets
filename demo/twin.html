@@ -9,7 +9,8 @@
     body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
     nav a { color: #58a6ff; font-size: 13px; text-decoration: none; }
     h1 { font-size: .95rem; color: #8b949e; margin: 12px 0; }
-    .demo { max-width: 600px; display: grid; gap: 12px; }
+    h2 { font-size: .8rem; color: #484f58; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .05em; }
+    .demo { max-width: 640px; display: grid; gap: 12px; }
   </style>
 </head>
 <body>
@@ -20,31 +21,71 @@
     import { renderTwinServiceView } from '../urirun_widgets/assets/widgets/twin.js';
     const el = document.getElementById('output');
 
-    // applied reversible step
+    // --- Krok 1: CDP navigate — z kontekstem środowiska ---
+    el.innerHTML += '<h2>applied — CDP navigate (linux-wayland, best=cdp)</h2>';
     el.innerHTML += renderTwinServiceView({
-      view: 'twin', title: 'Twin Monitor', status: 'running',
+      view: 'twin', title: 'Krok 1 / 5', status: 'running',
       data: {
-        narration: 'Nawiguję do LinkedIn',
+        narration: 'Nawiguję do LinkedIn przez CDP',
         status: 'applied',
-        forward: "goto('https://linkedin.com')",
-        inverse: 'history_back()',
+        forward: "kvm://host/cdp/page/command/navigate {url: 'https://www.linkedin.com'}",
+        inverse: "kvm://host/cdp/page/command/navigate {url: 'about:blank'}",
         reversible: true,
-        before: { fingerprint: 'browser_new_tab', stateSig: 'sig_002', url: 'about:blank' },
-        after:  { fingerprint: 'linkedin_feed',   stateSig: 'sig_003', url: 'https://linkedin.com/feed' },
+        before: { fingerprint: 'cdp_blank_tab', url: 'about:blank' },
+        after:  { fingerprint: 'linkedin_login', url: 'https://www.linkedin.com' },
+        env: {
+          platform: 'linux-wayland',
+          best: 'cdp',
+          controllable: true,
+          osLevelReliable: false,
+          strategies: { cdp: true, atspi: true, vision: true },
+          surface: 'desktop',
+        },
+        constraints: [
+          { kind: 'blocked', what: 'screen_capture', reason: 'Wayland portal odmówił (code 2)', fix: 'użyj CDP screenshot' },
+          { kind: 'missing', what: 'wmctrl', reason: 'window list niedostępny', fix: 'apt install wmctrl' },
+          { kind: 'degraded', what: 'easyocr', reason: 'tylko Tesseract — OCR wolniejszy', fix: 'pip install easyocr' },
+        ],
       }
     });
 
-    // blocked irreversible step
+    // --- Krok 2: blocked irreversible ---
+    el.innerHTML += '<h2>blocked — akcja bez inwersu (wyślij e-mail)</h2>';
     el.innerHTML += renderTwinServiceView({
-      view: 'twin', title: 'Twin Monitor', status: 'blocked',
+      view: 'twin', title: 'Krok 4 / 5', status: 'blocked',
       data: {
-        narration: "NIEWYKONYWALNA: Akcja 'wyślij e-mail' nie ma inwersu — czekam na decyzję usera.",
+        narration: "NIEWYKONYWALNA: kliknięcie 'Wyślij' nie ma inwersu — czekam na decyzję usera.",
         status: 'blocked',
-        forward: "click('Wyślij')",
+        forward: "browser://cdp/page/command/click {text: 'Wyślij', role: 'button'}",
         inverse: null,
         reversible: false,
-        before: { fingerprint: 'linkedin_feed_scrolled', stateSig: 'sig_004', url: 'https://linkedin.com/feed' },
-        after:  { fingerprint: 'linkedin_message_sent', stateSig: 'sig_005', url: 'https://linkedin.com/feed' },
+        before: { fingerprint: 'linkedin_compose_open', url: 'https://linkedin.com/feed' },
+        after:  { fingerprint: 'linkedin_message_sent', url: 'https://linkedin.com/feed' },
+        env: {
+          platform: 'linux-wayland',
+          best: 'cdp',
+          controllable: true,
+          osLevelReliable: false,
+          strategies: { cdp: true, atspi: true, vision: true },
+        },
+        constraints: [
+          { kind: 'blocked', what: 'screen_capture', reason: 'Wayland portal odmówił (code 2)', fix: 'użyj CDP screenshot' },
+        ],
+      }
+    });
+
+    // --- Krok 3: bez env (backwards compat) ---
+    el.innerHTML += '<h2>bez env/constraints (kompatybilność wsteczna)</h2>';
+    el.innerHTML += renderTwinServiceView({
+      view: 'twin', title: 'Twin Monitor', status: 'running',
+      data: {
+        narration: 'Stary format — bez pól env/constraints',
+        status: 'applied',
+        forward: "goto('https://example.com')",
+        inverse: 'history_back()',
+        reversible: true,
+        before: { fingerprint: 'blank', url: 'about:blank' },
+        after:  { fingerprint: 'example', url: 'https://example.com' },
       }
     });
   </script>
