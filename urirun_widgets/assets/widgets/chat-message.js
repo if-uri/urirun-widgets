@@ -22,20 +22,27 @@ export function messageAttachments(message) {
   });
 }
 
-export function renderChatMessage(message, selectedIds) {
+function _messageButtons(message, role, selectedIds) {
   const has = (id) => selectedIds && (typeof selectedIds.has === 'function' ? selectedIds.has(id) : selectedIds.includes(id));
+  if (!message.id) return { checkbox: '', deleteButton: '', copyMarkdownButton: '', repeatButton: '' };
+  const id = message.id;
+  const selected = has(id) ? 'checked' : '';
+  const checkbox = `<input type="checkbox" name="chatMessageSelect" value="${esc(id)}" ${selected}>`;
+  const deleteButton = `<button type="button" class="danger" data-chat-delete="${esc(id)}">Delete</button>`;
+  const copyMarkdownButton = `<button type="button" data-chat-copy-md="${esc(id)}" title="Copy message as Markdown">Copy MD</button>`;
+  // Re-run the command: only on user messages that carry a prompt (the command text).
+  const repeatButton = (role === 'user' && (message.content || '').trim())
+    ? `<button type="button" data-chat-repeat="${esc(id)}" title="Powtorz komende">Repeat</button>` : '';
+  return { checkbox, deleteButton, copyMarkdownButton, repeatButton };
+}
+
+export function renderChatMessage(message, selectedIds) {
   const detail = message.detail || {};
   const timeline = detail.timeline || [];
   const lines = timeline.map((step) => `${step.ok ? 'ok' : 'fail'} · ${step.target || ''} · ${step.uri}`).join('\n');
   const attachments = messageAttachments(message);
   const role = message.role || 'system';
-  const selected = message.id && has(message.id) ? 'checked' : '';
-  const checkbox = message.id ? `<input type="checkbox" name="chatMessageSelect" value="${esc(message.id)}" ${selected}>` : '';
-  const deleteButton = message.id ? `<button type="button" class="danger" data-chat-delete="${esc(message.id)}">Delete</button>` : '';
-  const copyMarkdownButton = message.id ? `<button type="button" data-chat-copy-md="${esc(message.id)}" title="Copy message as Markdown">Copy MD</button>` : '';
-  // Re-run the command: only on user messages that carry a prompt (the command text).
-  const repeatButton = (message.id && role === 'user' && (message.content || '').trim())
-    ? `<button type="button" data-chat-repeat="${esc(message.id)}" title="Powtorz komende">Repeat</button>` : '';
+  const { checkbox, deleteButton, copyMarkdownButton, repeatButton } = _messageButtons(message, role, selectedIds);
   return `<div class="message ${esc(role)}">
     <div class="message-head">
       <span class="message-title">${checkbox}<strong>${esc(role)}</strong></span>

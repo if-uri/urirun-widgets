@@ -21,6 +21,19 @@ export function isScannerFrameAttachment(att) {
   return ['receipt-crop', 'image', 'camera-scan'].includes(kind) || uri.startsWith('scanner://host/capture/');
 }
 
+function _renderPreview(att, isPdf, pdfUrl, visualUrl) {
+  if (isPdf && pdfUrl) {
+    return `<iframe class="attachment-pdf-frame" src="${esc(pdfUrl)}" title="${esc(basename(att.path))}" loading="lazy"></iframe>`;
+  }
+  if (visualUrl) {
+    return `<img src="${esc(visualUrl)}" alt="${esc(basename(att.path))}" loading="lazy">`;
+  }
+  if (isPdf) {
+    return `<div class="attachment-pdf-preview"><span>PDF</span><small>${esc(basename(att.path))}</small></div>`;
+  }
+  return `<div class="subtle">preview unavailable</div>`;
+}
+
 export function renderAttachment(att) {
   if (att.kind === 'twin-monitor') {
     const url = esc(att.uri || '/twin');
@@ -32,13 +45,7 @@ export function renderAttachment(att) {
   const kindClass = att.kind === 'qr-code' ? ' attachment-qr' : isPdf ? ' attachment-pdf' : '';
   const visualUrl = isPdf ? attachmentVisualPreviewUrl(att) : text(att.previewUrl || '');
   const pdfUrl = isPdf && fileAvailable ? text(att.previewUrl || att.filePreviewUrl || '') : '';
-  const preview = isPdf && pdfUrl
-    ? `<iframe class="attachment-pdf-frame" src="${esc(pdfUrl)}" title="${esc(basename(att.path))}" loading="lazy"></iframe>`
-    : (visualUrl
-      ? `<img src="${esc(visualUrl)}" alt="${esc(basename(att.path))}" loading="lazy">`
-      : (isPdf
-        ? `<div class="attachment-pdf-preview"><span>PDF</span><small>${esc(basename(att.path))}</small></div>`
-        : `<div class="subtle">preview unavailable</div>`));
+  const preview = _renderPreview(att, isPdf, pdfUrl, visualUrl);
   const fileUrl = fileAvailable ? text(att.previewUrl || att.filePreviewUrl || '') : '';
   const open = fileUrl ? `<a href="${esc(fileUrl)}" target="_blank" rel="noreferrer">open</a>` : '';
   const download = fileUrl ? `<a href="${esc(fileUrl)}" download>download</a>` : '';

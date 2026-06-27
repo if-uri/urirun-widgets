@@ -6,6 +6,59 @@
 // data.constraints: [{kind:'blocked'|'missing'|'degraded', what, reason, fix}]
 import { esc, renderServiceViewShell } from '../render-helpers.js';
 
+function _renderActionMatrix(matrix) {
+  if (!matrix) return '';
+  const ACTIONS = ['locate', 'click', 'type', 'navigate', 'screenshot'];
+  const SURFACES = Object.keys(matrix);
+  const ICON = {executable: '✓', degraded: '~', not_executable: '✗', not_applicable: '—', blocked: '✗'};
+  const CLS  = {executable: 'exe', degraded: 'deg', not_executable: 'nope', not_applicable: 'na', blocked: 'nope'};
+  const head = SURFACES.map(s => `<span class="twin-mx-hdr">${esc(s)}</span>`).join('');
+  const rows = ACTIONS.map(a => {
+    const cells = SURFACES.map(s => {
+      const v = (matrix[s] || {})[a] || 'not_applicable';
+      return `<span class="twin-mx-cell ${CLS[v]}" title="${esc(v)}">${ICON[v]}</span>`;
+    }).join('');
+    return `<span class="twin-mx-row-label">${esc(a)}</span>${cells}`;
+  }).join('');
+  return `<div class="twin-matrix" style="--mx-cols:${SURFACES.length}">
+    <span class="twin-mx-row-label"></span>${head}${rows}
+  </div>`;
+}
+
+function _renderEnvPanel(env) {
+  if (!env) return '';
+  const strat = env.strategies || {};
+  const stratBadges = Object.entries(strat)
+    .map(([k, v]) => `<span class="twin-env-badge${v ? '' : ' off'}">${esc(k)}</span>`)
+    .join('');
+  const surface = env.surface ? `<span class="twin-env-surface">${esc(env.surface)}</span>` : '';
+  const osWarn = env.osLevelReliable === false
+    ? `<span class="twin-env-badge off" title="OS-level screen capture zawodny">portal⚠</span>` : '';
+  const matrixHtml = _renderActionMatrix(env.actionMatrix || null);
+  return `<div class="twin-env">
+      <span class="twin-label">env:</span>
+      <span class="twin-env-platform">${esc(env.platform || '?')}</span>
+      <span class="twin-env-badge best">best:${esc(env.best || '?')}</span>
+      ${stratBadges}${osWarn}${surface}
+    </div>${matrixHtml}`;
+}
+
+function _renderConstraintsPanel(constraints) {
+  if (!constraints.length) return '';
+  const items = constraints.map(c => {
+    const cls = c.kind === 'blocked' ? 'twin-constraint-blocked'
+              : c.kind === 'missing' ? 'twin-constraint-missing'
+              : 'twin-constraint-degraded';
+    const fix = c.fix ? `<span class="twin-constraint-fix">→ ${esc(c.fix)}</span>` : '';
+    return `<div class="twin-constraint ${cls}">
+      <span class="twin-constraint-what">${esc(c.what)}</span>
+      <span class="twin-constraint-reason">${esc(c.reason)}</span>
+      ${fix}
+    </div>`;
+  }).join('');
+  return `<div class="twin-constraints"><span class="twin-label">ograniczenia:</span>${items}</div>`;
+}
+
 export function renderTwinServiceView(view) {
   const data = view.data || {};
   const reversible = data.reversible !== false;
@@ -40,63 +93,6 @@ export function renderTwinServiceView(view) {
     ? `<div class="twin-states">${stateCard('before', before)}<div class="twin-state-arrow">&#x2192;</div>${stateCard('after', after)}</div>`
     : '';
 
-  // env panel — dlaczego planner wybrał tę trasę + macierz zdolności per-akcja
-  let envPanel = '';
-  if (env) {
-    const strat = env.strategies || {};
-    const stratBadges = Object.entries(strat)
-      .map(([k, v]) => `<span class="twin-env-badge${v ? '' : ' off'}">${esc(k)}</span>`)
-      .join('');
-    const surface = env.surface ? `<span class="twin-env-surface">${esc(env.surface)}</span>` : '';
-    const osWarn = env.osLevelReliable === false
-      ? `<span class="twin-env-badge off" title="OS-level screen capture zawodny">portal⚠</span>` : '';
-
-    // action matrix: compact grid showing per-action executability
-    let matrixHtml = '';
-    const matrix = env.actionMatrix || null;
-    if (matrix) {
-      const ACTIONS = ['locate', 'click', 'type', 'navigate', 'screenshot'];
-      const SURFACES = Object.keys(matrix);
-      const ICON = {executable: '✓', degraded: '~', not_executable: '✗', not_applicable: '—', blocked: '✗'};
-      const CLS  = {executable: 'exe', degraded: 'deg', not_executable: 'nope', not_applicable: 'na', blocked: 'nope'};
-      const head = SURFACES.map(s => `<span class="twin-mx-hdr">${esc(s)}</span>`).join('');
-      const rows = ACTIONS.map(a => {
-        const cells = SURFACES.map(s => {
-          const v = (matrix[s] || {})[a] || 'not_applicable';
-          return `<span class="twin-mx-cell ${CLS[v]}" title="${esc(v)}">${ICON[v]}</span>`;
-        }).join('');
-        return `<span class="twin-mx-row-label">${esc(a)}</span>${cells}`;
-      }).join('');
-      matrixHtml = `<div class="twin-matrix" style="--mx-cols:${SURFACES.length}">
-        <span class="twin-mx-row-label"></span>${head}${rows}
-      </div>`;
-    }
-
-    envPanel = `<div class="twin-env">
-      <span class="twin-label">env:</span>
-      <span class="twin-env-platform">${esc(env.platform || '?')}</span>
-      <span class="twin-env-badge best">best:${esc(env.best || '?')}</span>
-      ${stratBadges}${osWarn}${surface}
-    </div>${matrixHtml}`;
-  }
-
-  // constraints panel — co było niemożliwe i dlaczego
-  let constraintsPanel = '';
-  if (constraints.length) {
-    const items = constraints.map(c => {
-      const cls = c.kind === 'blocked' ? 'twin-constraint-blocked'
-                : c.kind === 'missing' ? 'twin-constraint-missing'
-                : 'twin-constraint-degraded';
-      const fix = c.fix ? `<span class="twin-constraint-fix">→ ${esc(c.fix)}</span>` : '';
-      return `<div class="twin-constraint ${cls}">
-        <span class="twin-constraint-what">${esc(c.what)}</span>
-        <span class="twin-constraint-reason">${esc(c.reason)}</span>
-        ${fix}
-      </div>`;
-    }).join('');
-    constraintsPanel = `<div class="twin-constraints"><span class="twin-label">ograniczenia:</span>${items}</div>`;
-  }
-
-  const body = `<div class="twin-panel">${narration}${fwd}${inv}${states}${envPanel}${constraintsPanel}</div>`;
+  const body = `<div class="twin-panel">${narration}${fwd}${inv}${states}${_renderEnvPanel(env)}${_renderConstraintsPanel(constraints)}</div>`;
   return renderServiceViewShell(view, body);
 }

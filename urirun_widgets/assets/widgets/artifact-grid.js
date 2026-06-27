@@ -50,19 +50,30 @@ function artifactMetaSummary(item) {
     doc.amount || meta.amount].filter(Boolean).join(' · ');
 }
 
+function _isSelected(id, selectedIds) {
+  if (!id || !selectedIds) return false;
+  return typeof selectedIds.has === 'function' ? selectedIds.has(id) : selectedIds.includes(id);
+}
+
+function _rowControls(id, url, path, item) {
+  const openLink = url ? `<a href="${esc(url)}" target="_blank" rel="noreferrer">open</a>` : '';
+  const download = url ? `<a href="${esc(url)}" download>download</a>` : '';
+  const missing = (path && item.fileExists === false) ? '<span class="pill down">missing file</span>' : '';
+  const deleteBtn = id ? `<button type="button" class="danger" data-artifact-delete="${esc(id)}">Delete</button>` : '';
+  const metaDetails = item.meta ? `<details><summary>metadata</summary><pre>${esc(JSON.stringify(item.meta, null, 2))}</pre></details>` : '';
+  return { openLink, download, missing, deleteBtn, metaDetails };
+}
+
 export function renderArtifactFileRow(item, selectedIds) {
-  const has = (id) => selectedIds && (typeof selectedIds.has === 'function' ? selectedIds.has(id) : selectedIds.includes(id));
   const id = text(item.id);
   const path = text(item.path);
   const name = basename(path || item.uri || item.id);
   const url = artifactFileUrl(item);
   const metaLine = artifactMetaSummary(item);
-  const openLink = url ? `<a href="${esc(url)}" target="_blank" rel="noreferrer">open</a>` : '';
-  const download = url ? `<a href="${esc(url)}" download>download</a>` : '';
-  const missing = path && item.fileExists === false ? '<span class="pill down">missing file</span>' : '';
-  const selected = id && has(id) ? 'checked' : '';
+  const selected = _isSelected(id, selectedIds) ? 'checked' : '';
   const duplicateCount = Number(item.duplicateCount || 0);
   const duplicates = duplicateCount > 1 ? `<span class="pill">${duplicateCount} records</span>` : '';
+  const { openLink, download, missing, deleteBtn, metaDetails } = _rowControls(id, url, path, item);
   return `<div class="artifact-file-row">
     <div><input type="checkbox" name="artifactSelect" value="${esc(id)}" ${selected}></div>
     ${artifactThumb(item)}
@@ -77,8 +88,8 @@ export function renderArtifactFileRow(item, selectedIds) {
     </div>
     <div>
       <div class="subtle">${esc(item.created_at || '')}</div>
-      ${id ? `<button type="button" class="danger" data-artifact-delete="${esc(id)}">Delete</button>` : ''}
-      ${item.meta ? `<details><summary>metadata</summary><pre>${esc(JSON.stringify(item.meta, null, 2))}</pre></details>` : ''}
+      ${deleteBtn}
+      ${metaDetails}
     </div>
   </div>`;
 }
