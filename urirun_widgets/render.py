@@ -145,23 +145,24 @@ def render_iframe(view: dict) -> str:
     return _shell(view, body)
 
 
+def _form_field(field: dict) -> str:
+    name = field.get("name") or field.get("key") or field.get("label") or "field"
+    ftype = field.get("type") or "text"
+    value = field.get("value") or field.get("default") or ""
+    checked = "checked" if ftype == "checkbox" and (field.get("checked") or value is True or value == "true") else ""
+    readonly = "readonly" if field.get("readonly") else ""
+    return (
+        '<label class="stack">'
+        f'<span class="subtle">{esc(field.get("label") or name)}</span>'
+        f'<input type="{esc(ftype)}" name="{esc(name)}" value="{esc(value)}" {checked} {readonly}>'
+        '</label>')
+
+
 def render_form(view: dict) -> str:
     data = view.get("data") or {}
     fields = data.get("fields") if isinstance(data.get("fields"), list) else []
     action_uri = data.get("actionUri") or data.get("uri") or view.get("actionUri") or ""
-    parts = []
-    for field in fields:
-        name = field.get("name") or field.get("key") or field.get("label") or "field"
-        ftype = field.get("type") or "text"
-        value = field.get("value") or field.get("default") or ""
-        checked = "checked" if ftype == "checkbox" and (field.get("checked") or value is True or value == "true") else ""
-        readonly = "readonly" if field.get("readonly") else ""
-        parts.append(
-            '<label class="stack">'
-            f'<span class="subtle">{esc(field.get("label") or name)}</span>'
-            f'<input type="{esc(ftype)}" name="{esc(name)}" value="{esc(value)}" {checked} {readonly}>'
-            '</label>')
-    inner = "".join(parts) or '<div class="subtle">no fields</div>'
+    inner = "".join(_form_field(f) for f in fields) or '<div class="subtle">no fields</div>'
     tail = (f'<div class="mono">{esc(action_uri)}</div><button type="submit">Run URI</button>'
             if action_uri else '<div class="subtle">no action URI</div>')
     body = (f'<form class="service-form-preview" data-service-form data-action-uri="{esc(action_uri)}">'
@@ -181,6 +182,68 @@ def render_graph(view: dict) -> str:
     body = (f'<div class="service-graph"><div class="item"><strong>nodes</strong>{node_html}</div>'
             f'<div class="item"><strong>edges</strong>{edge_html}</div></div>')
     return _shell(view, body)
+
+
+def _twin_state_card(label: str, s: dict) -> str:
+    if not s or not s.get("fingerprint"):
+        return ""
+    url_span = f'<span class="twin-url">{esc(s.get("url") or "")}</span>' if s.get("url") else ""
+    return (f'<div class="twin-state"><span class="twin-label">{esc(label)}</span>'
+            f'<span class="twin-fp">{esc(s.get("fingerprint") or "")}</span>{url_span}</div>')
+
+
+def _twin_action_matrix(matrix: dict) -> str:
+    if not matrix:
+        return ""
+    _ACTIONS = ("locate", "click", "type", "navigate", "screenshot")
+    _SURFACES = list(matrix.keys())
+    _ICON = {"executable": "✓", "degraded": "~", "not_executable": "✗",
+             "not_applicable": "—", "blocked": "✗"}
+    _CLS = {"executable": "exe", "degraded": "deg", "not_executable": "nope",
+            "not_applicable": "na", "blocked": "nope"}
+    head = "".join(f'<span class="twin-mx-hdr">{esc(s)}</span>' for s in _SURFACES)
+    rows = "".join(
+        f'<span class="twin-mx-row-label">{esc(a)}</span>'
+        + "".join(
+            f'<span class="twin-mx-cell {_CLS.get(v, "na")}" title="{esc(v)}">{_ICON.get(v, "?")}</span>'
+            for s in _SURFACES
+            for v in [(matrix.get(s) or {}).get(a, "not_applicable")]
+        )
+        for a in _ACTIONS
+    )
+    return (f'<div class="twin-matrix" style="--mx-cols:{len(_SURFACES)}">'
+            f'<span class="twin-mx-row-label"></span>{head}{rows}</div>')
+
+
+def _twin_env_panel(env: dict) -> str:
+    if not env:
+        return ""
+    strat = env.get("strategies") or {}
+    badges = "".join(
+        f'<span class="twin-env-badge{" " if v else " off"}">{esc(k)}</span>'
+        for k, v in strat.items()
+    )
+    os_warn = ('<span class="twin-env-badge off" title="OS-level screen capture zawodny">portal⚠</span>'
+               if env.get("osLevelReliable") is False else "")
+    surface = (f'<span class="twin-env-surface">{esc(env.get("surface"))}</span>'
+               if env.get("surface") else "")
+    env_row = (f'<div class="twin-env">'
+               f'<span class="twin-label">env:</span>'
+               f'<span class="twin-env-platform">{esc(env.get("platform", "?"))}</span>'
+               f'<span class="twin-env-badge best">best:{esc(env.get("best", "?"))}</span>'
+               f'{badges}{os_warn}{surface}</div>')
+    return env_row + _twin_action_matrix(env.get("actionMatrix") or {})
+
+
+def _twin_constraint(c: dict) -> str:
+    cls = {"blocked": "twin-constraint-blocked",
+           "missing": "twin-constraint-missing"}.get(c.get("kind", ""), "twin-constraint-degraded")
+    fix = (f'<span class="twin-constraint-fix">→ {esc(c.get("fix"))}</span>'
+           if c.get("fix") else "")
+    return (f'<div class="twin-constraint {cls}">'
+            f'<span class="twin-constraint-what">{esc(c.get("what", ""))}</span>'
+            f'<span class="twin-constraint-reason">{esc(c.get("reason", ""))}</span>'
+            f'{fix}</div>')
 
 
 def render_twin(view: dict) -> str:
@@ -203,77 +266,21 @@ def render_twin(view: dict) -> str:
     else:
         inv = ""
 
-    def _state_card(label: str, s: dict) -> str:
-        if not s or not s.get("fingerprint"):
-            return ""
-        url_span = f'<span class="twin-url">{esc(s.get("url") or "")}</span>' if s.get("url") else ""
-        return (f'<div class="twin-state"><span class="twin-label">{esc(label)}</span>'
-                f'<span class="twin-fp">{esc(s.get("fingerprint") or "")}</span>{url_span}</div>')
-
     states = ""
     if before.get("fingerprint") or after.get("fingerprint"):
         states = (f'<div class="twin-states">'
-                  f'{_state_card("before", before)}'
+                  f'{_twin_state_card("before", before)}'
                   f'<div class="twin-state-arrow">&#x2192;</div>'
-                  f'{_state_card("after", after)}'
+                  f'{_twin_state_card("after", after)}'
                   f'</div>')
 
-    env_panel = ""
-    env = data.get("env") or {}
-    if env:
-        strat = env.get("strategies") or {}
-        badges = "".join(
-            f'<span class="twin-env-badge{" " if v else " off"}">{esc(k)}</span>'
-            for k, v in strat.items()
-        )
-        os_warn = ('<span class="twin-env-badge off" title="OS-level screen capture zawodny">portal⚠</span>'
-                   if env.get("osLevelReliable") is False else "")
-        surface = (f'<span class="twin-env-surface">{esc(env.get("surface"))}</span>'
-                   if env.get("surface") else "")
-        env_row = (f'<div class="twin-env">'
-                   f'<span class="twin-label">env:</span>'
-                   f'<span class="twin-env-platform">{esc(env.get("platform", "?"))}</span>'
-                   f'<span class="twin-env-badge best">best:{esc(env.get("best", "?"))}</span>'
-                   f'{badges}{os_warn}{surface}</div>')
-        matrix = env.get("actionMatrix") or {}
-        matrix_html = ""
-        if matrix:
-            _ACTIONS = ("locate", "click", "type", "navigate", "screenshot")
-            _SURFACES = list(matrix.keys())
-            _ICON = {"executable": "✓", "degraded": "~", "not_executable": "✗",
-                     "not_applicable": "—", "blocked": "✗"}
-            _CLS = {"executable": "exe", "degraded": "deg", "not_executable": "nope",
-                    "not_applicable": "na", "blocked": "nope"}
-            head = "".join(f'<span class="twin-mx-hdr">{esc(s)}</span>' for s in _SURFACES)
-            rows = "".join(
-                f'<span class="twin-mx-row-label">{esc(a)}</span>'
-                + "".join(
-                    f'<span class="twin-mx-cell {_CLS.get(v, "na")}" title="{esc(v)}">{_ICON.get(v, "?")}</span>'
-                    for s in _SURFACES
-                    for v in [(matrix.get(s) or {}).get(a, "not_applicable")]
-                )
-                for a in _ACTIONS
-            )
-            matrix_html = (f'<div class="twin-matrix" style="--mx-cols:{len(_SURFACES)}">'
-                           f'<span class="twin-mx-row-label"></span>{head}{rows}</div>')
-        env_panel = env_row + matrix_html
-
-    constraints_panel = ""
     constraints = data.get("constraints") or []
-    if constraints:
-        def _constraint(c: dict) -> str:
-            cls = {"blocked": "twin-constraint-blocked",
-                   "missing": "twin-constraint-missing"}.get(c.get("kind", ""), "twin-constraint-degraded")
-            fix = (f'<span class="twin-constraint-fix">→ {esc(c.get("fix"))}</span>'
-                   if c.get("fix") else "")
-            return (f'<div class="twin-constraint {cls}">'
-                    f'<span class="twin-constraint-what">{esc(c.get("what", ""))}</span>'
-                    f'<span class="twin-constraint-reason">{esc(c.get("reason", ""))}</span>'
-                    f'{fix}</div>')
-        items = "".join(_constraint(c) for c in constraints)
-        constraints_panel = f'<div class="twin-constraints"><span class="twin-label">ograniczenia:</span>{items}</div>'
+    constraints_panel = (
+        f'<div class="twin-constraints"><span class="twin-label">ograniczenia:</span>'
+        f'{"".join(_twin_constraint(c) for c in constraints)}</div>'
+    ) if constraints else ""
 
-    body = f'<div class="twin-panel">{narration}{fwd}{inv}{states}{env_panel}{constraints_panel}</div>'
+    body = f'<div class="twin-panel">{narration}{fwd}{inv}{states}{_twin_env_panel(data.get("env") or {})}{constraints_panel}</div>'
     return _shell(view, body)
 
 
@@ -433,6 +440,34 @@ def _attachment_visual_url(att: dict) -> str:
     return _file_preview_url(disp) if disp else ""
 
 
+def _attachment_preview_html(att: dict, is_pdf: bool, visual_url: str, pdf_url: str) -> str:
+    name = esc(_basename(att.get("path")))
+    if is_pdf and pdf_url:
+        return f'<iframe class="attachment-pdf-frame" src="{esc(pdf_url)}" title="{name}" loading="lazy"></iframe>'
+    if visual_url:
+        return f'<img src="{esc(visual_url)}" alt="{name}" loading="lazy">'
+    if is_pdf:
+        return f'<div class="attachment-pdf-preview"><span>PDF</span><small>{name}</small></div>'
+    return '<div class="subtle">preview unavailable</div>'
+
+
+def _attachment_ocr_line(ocr: dict) -> str:
+    if ocr.get("ok"):
+        return f'<div class="subtle">OCR {esc(ocr.get("backend") or "")}: {esc(_text(ocr.get("text"))[:160])}</div>'
+    if ocr.get("error"):
+        return f'<div class="subtle">OCR: {esc(ocr.get("error"))}</div>'
+    return ""
+
+
+def _attachment_links(att: dict, file_available: bool) -> tuple[str, str, str]:
+    """Return (open_link, download_link, missing_pill) HTML fragments."""
+    file_url = _text(att.get("previewUrl") or att.get("filePreviewUrl") or "") if file_available else ""
+    open_l = f'<a href="{esc(file_url)}" target="_blank" rel="noreferrer">open</a>' if file_url else ""
+    download = f'<a href="{esc(file_url)}" download>download</a>' if file_url else ""
+    missing = '<span class="pill down">missing file</span>' if att.get("fileExists") is False else ""
+    return open_l, download, missing
+
+
 def render_attachment(att: dict) -> str:
     att = att or {}
     if att.get("kind") == "twin-monitor":
@@ -447,30 +482,14 @@ def render_attachment(att: dict) -> str:
     kind_class = " attachment-qr" if att.get("kind") == "qr-code" else (" attachment-pdf" if is_pdf else "")
     visual_url = _attachment_visual_url(att) if is_pdf else _text(att.get("previewUrl") or "")
     pdf_url = _text(att.get("previewUrl") or att.get("filePreviewUrl") or "") if is_pdf and file_available else ""
-    if is_pdf and pdf_url:
-        preview = f'<iframe class="attachment-pdf-frame" src="{esc(pdf_url)}" title="{esc(_basename(att.get("path")))}" loading="lazy"></iframe>'
-    elif visual_url:
-        preview = f'<img src="{esc(visual_url)}" alt="{esc(_basename(att.get("path")))}" loading="lazy">'
-    elif is_pdf:
-        preview = f'<div class="attachment-pdf-preview"><span>PDF</span><small>{esc(_basename(att.get("path")))}</small></div>'
-    else:
-        preview = '<div class="subtle">preview unavailable</div>'
-    file_url = _text(att.get("previewUrl") or att.get("filePreviewUrl") or "") if file_available else ""
-    open_l = f'<a href="{esc(file_url)}" target="_blank" rel="noreferrer">open</a>' if file_url else ""
-    download = f'<a href="{esc(file_url)}" download>download</a>' if file_url else ""
-    missing = '<span class="pill down">missing file</span>' if att.get("fileExists") is False else ""
+    preview = _attachment_preview_html(att, is_pdf, visual_url, pdf_url)
+    open_l, download, missing = _attachment_links(att, file_available)
     detail_att = att if file_available else {**att, "previewUrl": "", "filePreviewUrl": ""}
-    if ocr.get("ok"):
-        ocr_line = f'<div class="subtle">OCR {esc(ocr.get("backend") or "")}: {esc(_text(ocr.get("text"))[:160])}</div>'
-    elif ocr.get("error"):
-        ocr_line = f'<div class="subtle">OCR: {esc(ocr.get("error"))}</div>'
-    else:
-        ocr_line = ""
     dims = f'· {meta.get("width")}x{meta.get("height")}' if meta.get("width") and meta.get("height") else ""
     return (f'<div class="attachment{kind_class}">{preview}'
             f'<div class="mono">{esc(_basename(att.get("path")))}</div>'
             f'<div class="subtle">{esc(att.get("kind") or "file")} {dims} {missing}</div>'
-            f'<div class="artifact-actions">{open_l}{download}</div>{ocr_line}'
+            f'<div class="artifact-actions">{open_l}{download}</div>{_attachment_ocr_line(ocr)}'
             f'<details><summary>metadata</summary><pre>{_json_pre(detail_att)}</pre></details></div>')
 
 
@@ -494,6 +513,19 @@ def message_attachments(message: dict) -> list[dict]:
     return out
 
 
+def _message_action_buttons(mid: str, role: str, content: str) -> str:
+    if not mid:
+        return ""
+    delete_btn = f'<button type="button" class="danger" data-chat-delete="{esc(mid)}">Delete</button>'
+    copy_md_btn = (f'<button type="button" data-chat-copy-md="{esc(mid)}" '
+                   'title="Copy message as Markdown">Copy MD</button>')
+    repeat_btn = (
+        f'<button type="button" data-chat-repeat="{esc(mid)}" title="Powtorz komende">Repeat</button>'
+        if role == "user" and str(content or "").strip() else ""
+    )
+    return repeat_btn + copy_md_btn + delete_btn
+
+
 def render_chat_message(message: dict, selected_ids=()) -> str:
     message = message or {}
     sel = set(selected_ids or ())
@@ -505,18 +537,12 @@ def render_chat_message(message: dict, selected_ids=()) -> str:
     mid = message.get("id")
     checkbox = (f'<input type="checkbox" name="chatMessageSelect" value="{esc(mid)}" '
                 f'{"checked" if mid in sel else ""}>') if mid else ""
-    delete_btn = f'<button type="button" class="danger" data-chat-delete="{esc(mid)}">Delete</button>' if mid else ""
-    copy_md_btn = (f'<button type="button" data-chat-copy-md="{esc(mid)}" '
-                   'title="Copy message as Markdown">Copy MD</button>') if mid else ""
-    # Re-run the command: only on user messages that carry a prompt (the command text).
-    repeat_btn = (f'<button type="button" data-chat-repeat="{esc(mid)}" '
-                  'title="Powtorz komende">Repeat</button>') if (mid and role == "user"
-                  and str(message.get("content") or "").strip()) else ""
+    buttons = _message_action_buttons(mid, role, message.get("content"))
     atts = (f'<div class="attachments">{"".join(render_attachment(a) for a in attachments)}</div>'
             if attachments else "")
     return (f'<div class="message {esc(role)}">'
             f'<div class="message-head"><span class="message-title">{checkbox}<strong>{esc(role)}</strong></span>'
-            f'<span class="message-actions"><span class="subtle">{esc(message.get("created_at") or "")}</span>{repeat_btn}{copy_md_btn}{delete_btn}</span></div>'
+            f'<span class="message-actions"><span class="subtle">{esc(message.get("created_at") or "")}</span>{buttons}</span></div>'
             f'<div>{esc(message.get("content") or "")}</div>'
             f'{f"<pre>{esc(lines)}</pre>" if lines else ""}{atts}'
             f'{f"<details><summary>URI / JSON</summary><pre>{_json_pre(detail)}</pre></details>" if detail else ""}</div>')
@@ -558,6 +584,55 @@ def artifact_thumb(item: dict) -> str:
     return f'<div class="artifact-thumb">{esc(ext)}</div>'
 
 
+def _artifact_meta_line(meta: dict) -> str:
+    doc = (meta.get("document") or {}).get("metadata") or meta.get("detectedDocument") or meta.get("metadata") or {}
+    parts = [doc.get("type") or meta.get("type"), doc.get("date") or meta.get("date"),
+             doc.get("contractor") or doc.get("supplier") or doc.get("category") or meta.get("contractor"),
+             doc.get("amount") or meta.get("amount")]
+    return " · ".join(_text(x) for x in parts if x)
+
+
+def _artifact_row_file_col(item: dict, path: str, url: str, open_l: str, dl: str, missing: str, dups: str) -> str:
+    label = esc(_basename(path or item.get("uri") or item.get("id")))
+    kind = esc(item.get("kind") or "artifact")
+    return (f'<div><div class="artifact-name"><strong>{label}</strong>'
+            f'<span class="pill">{kind}</span>{dups}{missing}</div>'
+            f'<div class="mono">{esc(path or item.get("uri") or "")}</div>'
+            f'<div class="artifact-actions">{open_l}{dl}</div></div>')
+
+
+def _artifact_row_actions_col(iid: str, meta: dict, created: str) -> str:
+    delete = (f'<button type="button" class="danger" data-artifact-delete="{esc(iid)}">Delete</button>'
+              if iid else "")
+    detail = (f'<details><summary>metadata</summary><pre>{_json_pre(meta)}</pre></details>'
+              if meta else "")
+    return f'<div><div class="subtle">{esc(created)}</div>{delete}{detail}</div>'
+
+
+def _artifact_grid_row(item: dict, sel: set) -> str:
+    meta = item.get("meta") or {}
+    meta_line = _artifact_meta_line(meta)
+    iid = _text(item.get("id"))
+    path = _text(item.get("path"))
+    url = _text(item.get("filePreviewUrl")) if "filePreviewUrl" in item else (
+        "" if item.get("fileExists") is False else _file_preview_url(path))
+    open_l = f'<a href="{esc(url)}" target="_blank" rel="noreferrer">open</a>' if url else ""
+    dl = f'<a href="{esc(url)}" download>download</a>' if url else ""
+    missing = '<span class="pill down">missing file</span>' if path and item.get("fileExists") is False else ""
+    dup = int(item.get("duplicateCount") or 0)
+    dups = f'<span class="pill">{dup} records</span>' if dup > 1 else ""
+    uri_col = (f'<div><div class="mono">{esc(item.get("uri") or "")}</div>'
+               f'{f"<div class=\"artifact-meta-line\">{esc(meta_line)}</div>" if meta_line else ""}</div>')
+    return (
+        f'<div class="artifact-file-row"><div><input type="checkbox" name="artifactSelect" value="{esc(iid)}" '
+        f'{"checked" if iid in sel else ""}></div>{artifact_thumb(item)}'
+        f'{_artifact_row_file_col(item, path, url, open_l, dl, missing, dups)}'
+        f'{uri_col}'
+        f'{_artifact_row_actions_col(iid, meta, item.get("created_at") or "")}'
+        f'</div>'
+    )
+
+
 def render_artifact_grid(items: list, selected_ids=()) -> str:
     rows = items if isinstance(items, list) else []
     sel = set(selected_ids or ())
@@ -565,34 +640,7 @@ def render_artifact_grid(items: list, selected_ids=()) -> str:
         return '<div class="item subtle">No artifacts recorded</div>'
     header = ('<div class="artifact-file-row header"><div></div><div>Preview</div><div>File</div>'
               '<div>URI / document</div><div>Created</div></div>')
-    out = [header]
-    for item in rows:
-        meta = item.get("meta") or {}
-        doc = (meta.get("document") or {}).get("metadata") or meta.get("detectedDocument") or meta.get("metadata") or {}
-        meta_line = " · ".join(_text(x) for x in [doc.get("type") or meta.get("type"), doc.get("date") or meta.get("date"),
-                               doc.get("contractor") or doc.get("supplier") or doc.get("category") or meta.get("contractor"),
-                               doc.get("amount") or meta.get("amount")] if x)
-        iid = _text(item.get("id"))
-        path = _text(item.get("path"))
-        url = _text(item.get("filePreviewUrl")) if "filePreviewUrl" in item else (
-            "" if item.get("fileExists") is False else _file_preview_url(path))
-        open_l = f'<a href="{esc(url)}" target="_blank" rel="noreferrer">open</a>' if url else ""
-        dl = f'<a href="{esc(url)}" download>download</a>' if url else ""
-        missing = '<span class="pill down">missing file</span>' if path and item.get("fileExists") is False else ""
-        dup = int(item.get("duplicateCount") or 0)
-        dups = f'<span class="pill">{dup} records</span>' if dup > 1 else ""
-        out.append(
-            f'<div class="artifact-file-row"><div><input type="checkbox" name="artifactSelect" value="{esc(iid)}" '
-            f'{"checked" if iid in sel else ""}></div>{artifact_thumb(item)}'
-            f'<div><div class="artifact-name"><strong>{esc(_basename(path or item.get("uri") or item.get("id")))}</strong>'
-            f'<span class="pill">{esc(item.get("kind") or "artifact")}</span>{dups}{missing}</div>'
-            f'<div class="mono">{esc(path or item.get("uri") or "")}</div>'
-            f'<div class="artifact-actions">{open_l}{dl}</div></div>'
-            f'<div><div class="mono">{esc(item.get("uri") or "")}</div>'
-            f'{f"<div class=\"artifact-meta-line\">{esc(meta_line)}</div>" if meta_line else ""}</div>'
-            f'<div><div class="subtle">{esc(item.get("created_at") or "")}</div>'
-            f'{f"<button type=\"button\" class=\"danger\" data-artifact-delete=\"{esc(iid)}\">Delete</button>" if iid else ""}'
-            f'{f"<details><summary>metadata</summary><pre>{_json_pre(meta)}</pre></details>" if item.get("meta") else ""}</div></div>')
+    out = [header] + [_artifact_grid_row(item, sel) for item in rows]
     return f'<div class="artifact-file-grid">{"".join(out)}</div>'
 
 
