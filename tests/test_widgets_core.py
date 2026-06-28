@@ -313,6 +313,25 @@ def test_chat_message_repeat_button_only_on_user_commands():
     assert "data-chat-repeat=" not in system["html"]
 
 
+def test_render_chat_message_human_task_banner():
+    msg = {
+        "role": "system",
+        "content": "node offline",
+        "id": "h1",
+        "detail": {
+            "kind": "human-task",
+            "humanEscalation": True,
+            "notify": {"sound": "beep"},
+            "humanTask": {"id": "task-1", "title": "Uruchom node urirun na lenovo", "surfaceUrl": "/tasks"},
+        },
+    }
+    r = c.render_view(widget="chat-message", data=json.dumps({"message": msg}))
+    assert r["ok"] and "human-task-alert" in r["html"]
+    assert "Human task" in r["html"]
+    assert "Uruchom node urirun na lenovo" in r["html"]
+    assert 'href="/tasks"' in r["html"]
+
+
 def test_render_artifact_grid():
     items = [{"id": "a1", "path": "/s/FV.pdf", "kind": "invoice", "uri": "doc://host/x",
               "created_at": "2026-06-24", "meta": {"detectedDocument": {"type": "faktura", "amount": 1230}}}]

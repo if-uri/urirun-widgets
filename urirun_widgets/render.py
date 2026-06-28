@@ -617,6 +617,29 @@ def _message_action_buttons(mid: str, role: str, content: str) -> str:
     return repeat_btn + copy_md_btn + delete_btn
 
 
+def _human_task_banner(detail: dict) -> str:
+    escalation = detail.get("escalation") or {}
+    task = detail.get("humanTask") or escalation.get("humanTask") or {}
+    next_action = detail.get("next") or escalation.get("next") or {}
+    notify = detail.get("notify") or escalation.get("notify") or {}
+    active = (
+        detail.get("kind") == "human-task"
+        or detail.get("humanEscalation") is True
+        or bool(task.get("id"))
+        or notify.get("sound") == "beep"
+    )
+    if not active:
+        return ""
+    title = task.get("title") or detail.get("humanAction") or next_action.get("instruction") or "Human action required"
+    url = task.get("surfaceUrl") or detail.get("dashboardUrl") or next_action.get("dashboardUrl") or ""
+    link = f'<a href="{esc(url)}" target="_blank" rel="noopener noreferrer">Open</a>' if url else ""
+    return (
+        '<div class="human-task-alert" style="border:1px solid var(--warn,#f59e0b);'
+        'background:rgba(245,158,11,.10);border-radius:4px;padding:8px 10px;margin:6px 0">'
+        f'<strong>Human task</strong><span>{esc(title)}</span>{link}</div>'
+    )
+
+
 def render_chat_message(message: dict, selected_ids=()) -> str:
     message = message or {}
     sel = set(selected_ids or ())
@@ -634,6 +657,7 @@ def render_chat_message(message: dict, selected_ids=()) -> str:
     return (f'<div class="message {esc(role)}">'
             f'<div class="message-head"><span class="message-title">{checkbox}<strong>{esc(role)}</strong></span>'
             f'<span class="message-actions"><span class="subtle">{esc(message.get("created_at") or "")}</span>{buttons}</span></div>'
+            f'{_human_task_banner(detail)}'
             f'<div>{esc(message.get("content") or "")}</div>'
             f'{f"<pre>{esc(lines)}</pre>" if lines else ""}{atts}'
             f'{f"<details><summary>URI / JSON</summary><pre>{_json_pre(detail)}</pre></details>" if detail else ""}</div>')

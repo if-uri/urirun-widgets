@@ -36,6 +36,22 @@ function _messageButtons(message, role, selectedIds) {
   return { checkbox, deleteButton, copyMarkdownButton, repeatButton };
 }
 
+function _humanTaskBanner(detail) {
+  const escalation = detail.escalation || {};
+  const task = detail.humanTask || escalation.humanTask || {};
+  const next = detail.next || escalation.next || {};
+  const notify = detail.notify || escalation.notify || {};
+  const active = detail.kind === 'human-task' || detail.humanEscalation === true || task.id || notify.sound === 'beep';
+  if (!active) return '';
+  const title = task.title || detail.humanAction || next.instruction || 'Human action required';
+  const url = task.surfaceUrl || detail.dashboardUrl || next.dashboardUrl || '';
+  return `<div class="human-task-alert" style="border:1px solid var(--warn,#f59e0b);background:rgba(245,158,11,.10);border-radius:4px;padding:8px 10px;margin:6px 0">
+    <strong>Human task</strong>
+    <span>${esc(title)}</span>
+    ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open</a>` : ''}
+  </div>`;
+}
+
 export function renderChatMessage(message, selectedIds) {
   const detail = message.detail || {};
   const timeline = detail.timeline || [];
@@ -53,6 +69,7 @@ export function renderChatMessage(message, selectedIds) {
         ${deleteButton}
       </span>
     </div>
+    ${_humanTaskBanner(detail)}
     <div>${esc(message.content || '')}</div>
     ${lines ? `<pre>${esc(lines)}</pre>` : ''}
     ${attachments.length ? `<div class="attachments">${attachments.map(renderAttachment).join('')}</div>` : ''}
