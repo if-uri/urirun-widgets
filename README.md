@@ -67,6 +67,25 @@ urirun-widget render --widget artifact-grid --data '{"items":[{"id":"a1","path":
 
 Moduły JS (`assets/`) to źródło prawdy dla przeglądarki. `render.py` to ich wierny odpowiednik w Pythonie używany przez `widget/query/render` — przy zmianie widgetu aktualizuj oba. Testy pilnują osobno pokrycia `view` (`RENDERERS`) i dashboard widgets (`DASHBOARD_RENDERERS`).
 
+### Trzecia kopia: host (do skasowania)
+
+Host (`urirun/host/`) wciąż **wendoruje** te renderery — niewidoczna trzecia kopia, która z umowy
+„aktualizuj oba" wypada:
+
+- `dashboard.js` — rodzina `render*ServiceView` / `renderWidget*` (fallback inline; konsumpcja bundla
+  `widget://host/bundle/query/js` jest już wpięta przez `loadWidgetBundleViaUri`)
+- `widgets.py` — `select_service_view`, `service_widget_summary`
+- `html_templates.py` — `service_widget_html`, `service_widget_svg`
+
+**Burn-down (ratchet):** `ci/check_render_single_source.py <host-dir> --baseline ci/render_baseline.json`
+liczy te kopie i blokuje NOWE; cel = `--strict` zielony, gdy bundle jest jedynym źródłem. Plan:
+(1) `dashboard.js` ładuje bundle i NIC nie renderuje inline; (2) serwer woła `urirun-widgets` `render.py`
+zamiast `html_templates.service_widget_*`; (3) skasuj inline'owe renderery hosta; (4) zaciśnij baseline → 0.
+
+**NIE migruje do widgetów:** kontroler dashboardu (`renderNodeCard`, `renderChatHistory`, `renderUrlState`,
+formularze CRUD node'ów, submit czatu, polling, wybór targetów) — to app operatora (`urirun-service-chat`),
+nie katalog widgetów. Widget renderuje *widok*, nie *prowadzi dashboard*.
+
 ## Wymagania
 
 - **python:** `urirun`
