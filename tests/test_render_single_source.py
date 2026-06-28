@@ -62,21 +62,24 @@ def test_ratchet_fails_on_new_copy(tmp_path):
     assert g.main([host, "--baseline", str(bl)]) == 1
 
 
-def test_delegating_glue_is_not_flagged(tmp_path):
-    """A host fn `_service_widget_html` that imports urirun_widgets is consumption glue, not a copy."""
+def test_neutral_named_delegate_is_not_flagged(tmp_path):
+    """The correct host pattern: delegate through a NEUTRAL name (`_standalone_service_html`) that
+    calls urirun_widgets — not a render-owned name. Neutral names are not flagged."""
+    host = _host(tmp_path, html_py=(
+        "def _standalone_service_html(project, query):\n"
+        "    from urirun_widgets.render import service_widget_html\n"
+        "    return service_widget_html(view_from(project, query))\n"))
+    assert g.vendored_renderers(host) == {}
+
+
+def test_render_owned_name_is_flagged_even_when_delegating(tmp_path):
+    """Policy (docs/ARCHITECTURE.md + hub AST gate): host must not DEFINE a render-owned name, even
+    one that delegates — reusing the catalogue's name in host is the third copy's seed. Use a neutral
+    wrapper name instead."""
     host = _host(tmp_path, html_py=(
         "def _service_widget_html(project, query):\n"
         "    from urirun_widgets.render import service_widget_html as impl\n"
         "    return impl(view_from(project, query))\n"))
-    assert g.vendored_renderers(host) == {}
-
-
-def test_redelegated_inline_copy_is_flagged(tmp_path):
-    """If that glue is swapped back to building HTML inline (no urirun_widgets), the third copy is
-    re-growing — flag it so the burn-down can't silently reverse."""
-    host = _host(tmp_path, html_py=(
-        "def _service_widget_html(project, query):\n"
-        "    return '<table>' + render_rows(query) + '</table>'\n"))
     found = g.vendored_renderers(host)
     assert any("_service_widget_html" in names for names in found.values())
 

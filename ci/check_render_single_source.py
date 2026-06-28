@@ -32,32 +32,21 @@ import sys
 # Widget-VIEW renderers only — the ones that duplicate urirun_widgets/render.py.
 # (NOT renderNodeCard/renderChatHistory/renderUrlState/… — those are the dashboard controller.)
 _JS = re.compile(r"function\s+(render[A-Za-z]*ServiceViews?|renderWidget(?:Card|Dashboard)|renderServiceViewShell)\b")
-# `_?` so a host glue fn `_service_widget_html` is checked too — but a fn that DELEGATES to
-# urirun_widgets (imports it in its body) is consumption, not a vendored copy, and is exempt.
+# Render-owned NAMES the host must never DEFINE (only CONSUME). Policy matches the authoritative
+# docs/ARCHITECTURE.md ("host nie powinien definiować render*ServiceView / service_widget_*") and the
+# hub-side AST gate (urirun test_widgets): the host delegates through NEUTRAL-named wrappers
+# (e.g. `_standalone_service_html` → urirun_widgets.render), so a render-OWNED name in host = a 3rd copy.
+# `_?` so an underscore-prefixed alias of a render name is caught too.
 _PY = re.compile(r"^def\s+(_?(?:service_widget_html|service_widget_svg|select_service_view|service_widget_summary|render_service_view|render_svg))\b",
                  re.MULTILINE)
 _SKIP = ("__pycache__", ".git", "node_modules", "venv", ".venv", "build", "dist")
 
 
 def _py_vendored(text: str) -> list[str]:
-    """Python widget-render DEFINITIONS that do NOT delegate to urirun_widgets.
-
-    A host fn named `_service_widget_html` whose body references `urirun_widgets` is the correct
-    consumption glue (controller → catalogue) and is exempt. One that builds render output inline is
-    the third copy re-growing — flag it. This catches a delegate being swapped back to inline."""
-    lines = text.splitlines()
-    vendored = []
-    for m in _PY.finditer(text):
-        name = m.group(1)
-        ln = text.count("\n", 0, m.start())
-        body = []
-        for j in range(ln + 1, len(lines)):  # body until the next top-level def/class/@ (col 0)
-            if lines[j] and not lines[j][0].isspace() and lines[j].startswith(("def ", "class ", "@")):
-                break
-            body.append(lines[j])
-        if "urirun_widgets" not in "\n".join(body):   # no delegation → vendored copy
-            vendored.append(name)
-    return vendored
+    """Render-owned NAME definitions in host Python. The host must CONSUME urirun-widgets render via a
+    neutral-named wrapper, never DEFINE a render-owned name (even one that delegates) — that is the
+    third copy's seed. Delegation is fine; reusing the catalogue's name for it is not."""
+    return [m.group(1) for m in _PY.finditer(text)]
 
 
 def vendored_renderers(host_dir: str) -> dict[str, list[str]]:
