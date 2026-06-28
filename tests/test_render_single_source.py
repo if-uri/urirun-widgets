@@ -62,6 +62,25 @@ def test_ratchet_fails_on_new_copy(tmp_path):
     assert g.main([host, "--baseline", str(bl)]) == 1
 
 
+def test_delegating_glue_is_not_flagged(tmp_path):
+    """A host fn `_service_widget_html` that imports urirun_widgets is consumption glue, not a copy."""
+    host = _host(tmp_path, html_py=(
+        "def _service_widget_html(project, query):\n"
+        "    from urirun_widgets.render import service_widget_html as impl\n"
+        "    return impl(view_from(project, query))\n"))
+    assert g.vendored_renderers(host) == {}
+
+
+def test_redelegated_inline_copy_is_flagged(tmp_path):
+    """If that glue is swapped back to building HTML inline (no urirun_widgets), the third copy is
+    re-growing — flag it so the burn-down can't silently reverse."""
+    host = _host(tmp_path, html_py=(
+        "def _service_widget_html(project, query):\n"
+        "    return '<table>' + render_rows(query) + '</table>'\n"))
+    found = g.vendored_renderers(host)
+    assert any("_service_widget_html" in names for names in found.values())
+
+
 def test_ifuri_host_has_no_vendored_widget_renderers_when_sibling_exists():
     host = Path(__file__).resolve().parents[2] / "urirun" / "adapters" / "python" / "urirun" / "host"
     if not host.exists():
