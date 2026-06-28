@@ -2,6 +2,7 @@
 and the Python server-side renderer mirroring the chatStreamList views."""
 import json
 import re
+from pathlib import Path
 
 import urirun_widgets.core as c
 from urirun_widgets import catalog, render
@@ -157,6 +158,110 @@ def test_dashboard_renderers_match_catalog_dashboard_widgets():
     dashboard_catalog_ids = {wid for wid, spec in catalog.CATALOG.items()
                              if not [v for v in spec.get("views", []) if v != "*"] and wid != "generic"}
     assert dashboard_catalog_ids == set(render.DASHBOARD_RENDERERS)
+
+
+# --- connector + contract examples -----------------------------------------
+
+def _contract_kernel():
+    import pytest
+
+    return pytest.importorskip("urirun_contract")
+
+
+def _widget_contracts():
+    uc = _contract_kernel()
+    return {
+        "widget/query/render": uc.Contract(
+            version="v1",
+            effect="query",
+            inp={
+                "view": "?str",
+                "data": "?str",
+                "title": "?str",
+                "status": "?str",
+                "target": "?str",
+                "widget": "?str",
+            },
+            out={
+                "ok": "const:true",
+                "connector": "const:widget",
+                "kind": "const:render",
+                "live": "const:false",
+                "html": "str",
+            },
+            examples=(
+                {
+                    "payload": {"view": "table", "data": "{\"rows\":[{\"nip\":\"7781422455\"}]}"},
+                    "result": {
+                        "ok": True,
+                        "connector": "widget",
+                        "kind": "render",
+                        "live": False,
+                        "html": "<table></table>",
+                    },
+                },
+            ),
+        ),
+        "bundle/query/js": uc.Contract(
+            version="v1",
+            effect="query",
+            out={
+                "ok": "const:true",
+                "connector": "const:widget",
+                "kind": "const:bundle",
+                "live": "const:false",
+                "format": "const:esm",
+                "js": "str",
+            },
+            examples=(
+                {
+                    "payload": {},
+                    "result": {
+                        "ok": True,
+                        "connector": "widget",
+                        "kind": "bundle",
+                        "live": False,
+                        "format": "esm",
+                        "js": "export function renderServiceView() {}",
+                    },
+                },
+            ),
+        ),
+    }
+
+
+def test_widget_manifest_examples_satisfy_contracts():
+    uc = _contract_kernel()
+    contracts = _widget_contracts()
+    uc.conform(contracts)
+
+    manifest = json.loads((Path(c.__file__).with_name("connector.manifest.json")).read_text())
+    examples = {item["uri"]: item for item in manifest["examples"]}
+
+    render_payload = examples["widget://host/widget/query/render"]["payload"]
+    uc.check(contracts["widget/query/render"].inp, render_payload, "manifest render payload")
+    render_result = c.render_view(**render_payload)
+    assert uc.envelope_violation(contracts["widget/query/render"], render_result) is None
+
+    bundle_payload = examples["widget://host/bundle/query/js"]["payload"]
+    uc.check(contracts["bundle/query/js"].inp, bundle_payload, "manifest bundle payload")
+    bundle_result = c.bundle_js()
+    assert uc.envelope_violation(contracts["bundle/query/js"], bundle_result) is None
+
+
+def test_widget_contract_reaches_registry_and_mcp_output_schema():
+    uc = _contract_kernel()
+    v2_mcp = __import__("urirun_runtime.v2_mcp", fromlist=["to_mcp_tools"])
+
+    contracts = _widget_contracts()
+    uc.attach_contracts(c.WIDGET, contracts)
+
+    registry = c.WIDGET.registry()
+    tools = {tool["_uri"]: tool for tool in v2_mcp.to_mcp_tools(registry)}
+    render_tool = tools["widget://host/widget/query/render"]
+    assert render_tool["outputSchema"]["properties"]["html"] == {"type": "string"}
+    assert render_tool["outputSchema"]["properties"]["connector"] == {"const": "widget"}
+    assert render_tool["outputSchema"]["examples"][0]["kind"] == "render"
 
 
 def test_render_attachment_widget():
