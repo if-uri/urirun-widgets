@@ -7,6 +7,9 @@ urirun-widgets is the source of truth for service-view rendering; the host's `re
 view renderers — never the dashboard controller (node CRUD, chat, polling)."""
 import os
 import sys
+from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ci"))
 import check_render_single_source as g  # noqa: E402
@@ -57,3 +60,10 @@ def test_ratchet_fails_on_new_copy(tmp_path):
     bl = tmp_path / "baseline.json"
     bl.write_text('{"known_vendored": ["renderServiceView"]}')   # the new graph renderer is not allowed
     assert g.main([host, "--baseline", str(bl)]) == 1
+
+
+def test_ifuri_host_has_no_vendored_widget_renderers_when_sibling_exists():
+    host = Path(__file__).resolve().parents[2] / "urirun" / "adapters" / "python" / "urirun" / "host"
+    if not host.exists():
+        pytest.skip("if-uri monorepo sibling not present")
+    assert g.main([str(host), "--strict"]) == 0

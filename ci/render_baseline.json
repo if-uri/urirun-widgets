@@ -1,21 +1,3 @@
 {
-  "known_vendored": [
-    "renderFormServiceView",
-    "renderGenericServiceView",
-    "renderGraphServiceView",
-    "renderIframeServiceView",
-    "renderImageServiceView",
-    "renderScannerStatusServiceView",
-    "renderServiceView",
-    "renderServiceViewShell",
-    "renderServiceViews",
-    "renderTableServiceView",
-    "renderVideoServiceView",
-    "renderWidgetCard",
-    "renderWidgetDashboard",
-    "select_service_view",
-    "service_widget_html",
-    "service_widget_summary",
-    "service_widget_svg"
-  ]
+  "known_vendored": []
 }

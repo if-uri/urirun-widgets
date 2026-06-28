@@ -9,9 +9,11 @@
 from __future__ import annotations
 
 import html
+import importlib.resources as resources
 import json
 import re
 from typing import Any
+from typing import Callable
 from urllib.parse import quote
 
 
@@ -411,6 +413,95 @@ def render_service_view(view: dict) -> str:
     return RENDERERS.get((view or {}).get("view"), render_generic)(view or {})
 
 
+def select_service_view(
+    data: dict,
+    *,
+    target: str,
+    view_id: str | None,
+    utc_now: Callable[[], str],
+) -> dict:
+    views = [item for item in data.get("views", []) if isinstance(item, dict)]
+    if view_id:
+        for view in views:
+            if view.get("id") == view_id:
+                return view
+    for view in views:
+        if view.get("target") == target or view.get("serviceId") == target:
+            return view
+    return {
+        "id": view_id or f"{target}/live",
+        "target": target,
+        "serviceId": target,
+        "title": target,
+        "kind": "stream",
+        "view": "json",
+        "status": "stopped",
+        "updatedAt": data.get("updatedAt") or utc_now(),
+        "data": {},
+    }
+
+
+def scanner_stream_summary(title: str, status: str, stream: dict) -> dict[str, str]:
+    best = stream.get("best") if isinstance(stream.get("best"), dict) else {}
+    doc = best.get("detectedDocument") if isinstance(best.get("detectedDocument"), dict) else {}
+    parts = [
+        doc.get("type"),
+        doc.get("date"),
+        doc.get("contractor") or doc.get("supplier") or doc.get("category"),
+        doc.get("amount"),
+    ]
+    subtitle = " · ".join(str(part) for part in parts if part) or str(stream.get("seriesId") or "")
+    detail = f"{stream.get('count') or 0} frame(s)"
+    return {"title": title, "status": status, "subtitle": subtitle, "detail": detail}
+
+
+def service_widget_summary(view: dict) -> dict[str, str]:
+    title = str(view.get("title") or view.get("id") or "service view")
+    status = str(view.get("status") or "unknown")
+    streams = ((view.get("data") or {}).get("streams") or []) if isinstance(view.get("data"), dict) else []
+    if streams and isinstance(streams[0], dict):
+        return scanner_stream_summary(title, status, streams[0])
+    return {
+        "title": title,
+        "status": status,
+        "subtitle": str(view.get("target") or view.get("serviceId") or ""),
+        "detail": str(view.get("updatedAt") or ""),
+    }
+
+
+def _widgets_css() -> str:
+    return resources.files(__package__).joinpath("assets/widgets.css").read_text(encoding="utf-8")
+
+
+def service_widget_html(view: dict) -> str:
+    """Render a standalone service-view page using the widget package renderer."""
+    view = view or {}
+    title = str(view.get("title") or "urirun service view")
+    refresh_ms = int(view.get("refreshMs") or 1000)
+    refresh = max(1, refresh_ms // 1000) if refresh_ms else 0
+    meta = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {meta}
+  <title>{esc(title)}</title>
+  <style>
+    body {{ margin:0; padding:12px; background:#11100f; color:#f4f1e9; font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }}
+    a {{ color:#2dd4bf; }}
+    * {{ box-sizing:border-box; }}
+{_widgets_css()}
+  </style>
+</head>
+<body>
+  <main class="stream-list">
+    {render_service_view(view)}
+  </main>
+</body>
+</html>"""
+
+
 # --- dashboard widgets (mirror of assets/widgets/{attachment,chat-message,artifact-grid,
 # widget-card,dashboard}.js). These are NOT service-views — they are rendered explicitly, so
 # they live in DASHBOARD_RENDERERS, never in RENDERERS (which must stay in lockstep with the
@@ -766,29 +857,11 @@ DASHBOARD_RENDERERS = {
 }
 
 
-# --- server-side SVG card (mirror of host _service_widget_svg / _service_widget_summary) ---
-def _service_widget_summary(view: dict) -> dict[str, str]:
-    title = str(view.get("title") or view.get("id") or "service view")
-    status = str(view.get("status") or "unknown")
-    data = view.get("data") if isinstance(view.get("data"), dict) else {}
-    streams = data.get("streams") or []
-    if streams and isinstance(streams[0], dict):
-        stream = streams[0]
-        best = stream.get("best") if isinstance(stream.get("best"), dict) else {}
-        doc = best.get("detectedDocument") if isinstance(best.get("detectedDocument"), dict) else {}
-        parts = [doc.get("type"), doc.get("date"), doc.get("contractor") or doc.get("supplier") or doc.get("category"), doc.get("amount")]
-        subtitle = " · ".join(str(p) for p in parts if p) or str(stream.get("seriesId") or "")
-        return {"title": title, "status": status, "subtitle": subtitle, "detail": f"{stream.get('count') or 0} frame(s)"}
-    return {"title": title, "status": status,
-            "subtitle": str(view.get("target") or view.get("serviceId") or ""),
-            "detail": str(view.get("updatedAt") or "")}
-
-
 def render_svg(view: dict, width: int = 720, height: int = 180) -> str:
     """Render a service view as a compact SVG card (badge/email), mirroring the host's
     /services/view.svg endpoint."""
     view = view or {}
-    summary = _service_widget_summary(view)
+    summary = service_widget_summary(view)
     w = max(320, min(1200, int(width or 720)))
     h = max(120, min(600, int(height or 180)))
     status = summary["status"]
@@ -807,4 +880,8 @@ def render_svg(view: dict, width: int = 720, height: int = 180) -> str:
             f'</svg>')
 
 
-__all__ = ["render_service_view", "RENDERERS", "DASHBOARD_RENDERERS", "render_svg", "esc"]
+__all__ = [
+    "render_service_view", "select_service_view", "scanner_stream_summary",
+    "service_widget_summary", "service_widget_html", "RENDERERS",
+    "DASHBOARD_RENDERERS", "render_svg", "esc",
+]
