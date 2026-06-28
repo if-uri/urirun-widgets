@@ -1,0 +1,25 @@
+name: ci
+
+# Run the package's tests on every push/PR. This is a real-source extracted package with
+# ~1.6k LOC, but until now it had NO CI at all (not even release). Install with the [test]
+# extra — the `urirun` dependency resolves from PyPI; the package must be installed so its
+# routes run through the local-function-subprocess adapter.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (pulls urirun) and run tests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]"
+          python -m pytest -q

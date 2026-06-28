@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [{ name = "if-uri" }]
-dependencies = ["urirun>=0.4.14"]
+dependencies = ["urirun>=0.4.190"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
